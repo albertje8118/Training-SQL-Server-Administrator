@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M01: SQL Server Overview &amp; Architecture — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item active">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M06–M11 Coming soon</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 1 › <span>Module 01</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 1 · Morning · 90 min</span>
+          <h1><span class="module-num">Module 01:</span> SQL Server Overview &amp; Architecture</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 01</span>
+            <span class="tag">Instructor-Led Demo</span>
+            <span class="tag blue">SQL Server 2019/2022</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Identify the main SQL Server editions and state when to use each</li>
+            <li>Describe the key components of a SQL Server installation</li>
+            <li>Explain the relationship between an instance, a database, and a database object</li>
+            <li>Name the four system databases and their purpose</li>
+            <li>Distinguish between Windows Authentication and SQL Server Authentication</li>
+          </ul>
+        </div>
+
+        <!-- 1.1 Editions -->
+        <h2 id="editions">1.1 SQL Server Editions</h2>
+        <p>SQL Server ships in several editions. Understanding the differences helps you choose the right licence for each workload.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Edition</th><th>Target Use</th><th>Key Limits</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Express</strong></td><td>Small apps, learning, development</td><td>10 GB database size · 1 GB RAM · 1 socket / 4 cores</td></tr>
+              <tr><td><strong>Standard</strong></td><td>Departmental workloads</td><td>128 GB RAM · 24 cores</td></tr>
+              <tr><td><strong>Enterprise</strong></td><td>Mission-critical, large-scale</td><td>Unlimited memory and cores — all features enabled</td></tr>
+              <tr><td><strong>Developer</strong></td><td>Development and testing only</td><td>Same features as Enterprise — <strong>not for production</strong></td></tr>
+              <tr><td><strong>Evaluation</strong></td><td>180-day full-feature trial</td><td>Expires — not for production</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>Lab Environment</strong>
+            <p>The training VM uses <strong>Developer Edition</strong>. You will see "Developer" in the SSMS title bar and in <code>SELECT @@VERSION</code>.</p>
+          </div>
+        </div>
+        <h3>Feature Highlights by Edition</h3>
+        <ul>
+          <li><strong>Always On Availability Groups</strong> — Enterprise only</li>
+          <li><strong>Table Partitioning</strong> — Enterprise only</li>
+          <li><strong>Advanced SSIS connectors</strong> — Enterprise only</li>
+          <li><strong>Basic Always On</strong> (two nodes, single database) — Standard</li>
+          <li><strong>Transparent Data Encryption (TDE)</strong> — Standard and Enterprise</li>
+        </ul>
+
+        <!-- 1.2 Components -->
+        <h2 id="components">1.2 SQL Server Components</h2>
+        <p>A full SQL Server installation can include several independent components. Not all are installed by default.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Component</th><th>Purpose</th><th>Default?</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Database Engine</strong></td><td>Core relational engine — stores and processes data</td><td>Yes</td></tr>
+              <tr><td><strong>SQL Server Agent</strong></td><td>Scheduled jobs, alerts, and notifications</td><td>Yes (requires Engine)</td></tr>
+              <tr><td><strong>SQL Server Browser</strong></td><td>Resolves instance names on the network</td><td>Optional</td></tr>
+              <tr><td><strong>Integration Services (SSIS)</strong></td><td>ETL — extract, transform, load data</td><td>Optional</td></tr>
+              <tr><td><strong>Reporting Services (SSRS)</strong></td><td>Web-based reports</td><td>Optional</td></tr>
+              <tr><td><strong>Analysis Services (SSAS)</strong></td><td>OLAP cubes and data mining</td><td>Optional</td></tr>
+              <tr><td><strong>Full-Text Search</strong></td><td>Advanced text indexing and search</td><td>Optional</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>In this course we focus on the <strong>Database Engine</strong> and <strong>SQL Server Agent</strong>. These two components handle all core administration tasks.</p>
+
+        <!-- 1.3 Instances -->
+        <h2 id="instances">1.3 Instances</h2>
+        <p>An <strong>instance</strong> is a complete, independent copy of the SQL Server Database Engine running on a server.</p>
+        <h3>Default vs. Named Instance</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>Default Instance</th><th>Named Instance</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Connect string</strong></td><td><code>SERVERNAME</code> or <code>.</code></td><td><code>SERVERNAME\INSTANCENAME</code></td></tr>
+              <tr><td><strong>TCP/IP port</strong></td><td>1433 (default)</td><td>Dynamic or manually assigned</td></tr>
+              <tr><td><strong>Windows service name</strong></td><td><code>MSSQLSERVER</code></td><td><code>MSSQL$INSTANCENAME</code></td></tr>
+              <tr><td><strong>When to use</strong></td><td>Single instance per server</td><td>Multiple instances on one server</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>Each instance has its own memory allocation, SQL Server Agent, system databases, and login store.</p>
+        <h3>Connecting in SSMS</h3>
+        <ol>
+          <li>Open SSMS.</li>
+          <li>In the <strong>Connect to Server</strong> dialog, type the server name:<ul><li>Default instance: <code>.\</code> or <code>localhost</code></li><li>Named instance: <code>.\SQLEXPRESS</code> or <code>SERVER01\PROD2019</code></li></ul></li>
+          <li>Choose your <strong>Authentication</strong> type (covered in Section 1.5).</li>
+          <li>Click <strong>Connect</strong>.</li>
+        </ol>
+
+        <!-- 1.4 System Databases -->
+        <h2 id="system-dbs">1.4 System Databases</h2>
+        <p>Every SQL Server instance includes four <strong>system databases</strong>. Never modify these directly unless instructed by Microsoft support.</p>
+        <h3>master</h3>
+        <p>Contains <strong>instance-level metadata</strong>: logins, linked servers, server configuration, endpoint definitions. If <code>master</code> is damaged and there is no backup, the instance cannot start. <strong>Back up <code>master</code> whenever you add logins, create databases, or change server configuration.</strong></p>
+        <h3>model</h3>
+        <p>Acts as the <strong>template</strong> for all new user databases. Any object or setting you add to <code>model</code> will appear in every database created afterward. Changing <code>AUTO_SHRINK</code> in <code>model</code> means every new database inherits it.</p>
+        <h3>msdb</h3>
+        <p>Used by <strong>SQL Server Agent</strong> to store jobs, schedules, alerts, and job history. Also stores backup/restore history and Database Mail configuration. Back up <code>msdb</code> regularly if you rely on SQL Server Agent jobs.</p>
+        <h3>tempdb</h3>
+        <p>A <strong>shared scratch space</strong> for temporary tables (<code>#temp</code>), table variables, row versioning, and sort operations. <strong>Recreated from scratch every time the instance starts</strong> — never back up <code>tempdb</code>. Heavy <code>tempdb</code> contention is a common performance issue.</p>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>Finding System Databases in SSMS</strong>
+            <p>In Object Explorer, expand: <code>SERVERNAME → Databases → System Databases</code></p>
+          </div>
+        </div>
+
+        <!-- 1.5 Auth Modes -->
+        <h2 id="auth-modes">1.5 Authentication Modes</h2>
+        <p>SQL Server supports two authentication modes, set at the instance level.</p>
+        <h3>Windows Authentication</h3>
+        <p>Uses the operating system's existing identity (AD account or local Windows account). SQL Server trusts the Windows token — no separate SQL password is stored. Generally considered more secure because it leverages Kerberos/NTLM and Windows password policies. Ideal for domain-joined environments.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">Connection String</span><button class="copy-btn">COPY</button></div>
+          <pre><code>Server=SQLSERVER01;Database=AdventureWorks;Integrated Security=True;</code></pre>
+        </div>
+        <h3>SQL Server Authentication (Mixed Mode)</h3>
+        <p>SQL Server stores its own username and password (a "SQL login"). Required when clients are on a different Windows domain, when applications connect from non-Windows platforms, or when you need a specific application service account without an AD identity.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">Connection String</span><button class="copy-btn">COPY</button></div>
+          <pre><code>Server=SQLSERVER01;Database=AdventureWorks;User Id=AppUser;Password=Str0ng!Pass;</code></pre>
+        </div>
+        <h3>Checking and Changing the Auth Mode</h3>
+        <ol>
+          <li>In SSMS Object Explorer, right-click the instance → <strong>Properties</strong>.</li>
+          <li>Click the <strong>Security</strong> page.</li>
+          <li>Under <strong>Server authentication</strong>, the current mode is shown.</li>
+          <li>To enable Mixed Mode: select <strong>SQL Server and Windows Authentication mode</strong> → click <strong>OK</strong>.</li>
+          <li><strong>Restart the SQL Server service</strong> for the change to take effect.</li>
+        </ol>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>Best Practice</strong>
+            <p>Use Windows Authentication wherever possible. Enable Mixed Mode only when necessary, and apply strong passwords to all SQL logins.</p>
+          </div>
+        </div>
+
+        <!-- 1.6 SSMS -->
+        <h2 id="ssms">1.6 SSMS Orientation</h2>
+        <p>SSMS is the primary GUI tool for SQL Server administration.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Area</th><th>Location</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Object Explorer</strong></td><td>Left panel</td><td>Navigate instances, databases, objects</td></tr>
+              <tr><td><strong>Query Editor</strong></td><td>Centre pane</td><td>Write and run T-SQL statements</td></tr>
+              <tr><td><strong>Results Pane</strong></td><td>Below query editor</td><td>Query output: grid, messages, execution plan</td></tr>
+              <tr><td><strong>Activity Monitor</strong></td><td>Right-click instance</td><td>Live view of processes, waits, I/O</td></tr>
+              <tr><td><strong>Template Explorer</strong></td><td>View menu</td><td>Pre-written T-SQL script templates</td></tr>
+              <tr><td><strong>SQL Server Profiler</strong></td><td>Tools menu</td><td>Capture and analyse query trace events</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Useful Keyboard Shortcuts</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Shortcut</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td><kbd>F5</kbd> or <kbd>Ctrl+E</kbd></td><td>Execute selected query (or all if nothing selected)</td></tr>
+              <tr><td><kbd>Ctrl+K, Ctrl+C</kbd></td><td>Comment selected lines</td></tr>
+              <tr><td><kbd>Ctrl+K, Ctrl+U</kbd></td><td>Uncomment selected lines</td></tr>
+              <tr><td><kbd>Ctrl+L</kbd></td><td>Display estimated execution plan</td></tr>
+              <tr><td><kbd>Ctrl+M</kbd></td><td>Toggle actual execution plan</td></tr>
+              <tr><td><kbd>Ctrl+R</kbd></td><td>Show/hide results pane</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>What is the maximum database size for SQL Server <strong>Express</strong> Edition?</li>
+            <li>Which system database must be backed up whenever you create a new SQL Server login?</li>
+            <li>You need to connect two application servers on a separate Windows domain to a SQL Server instance. Which authentication mode must you enable?</li>
+            <li>What is the name of the Windows service for a <strong>default</strong> SQL Server instance?</li>
+            <li>What happens to data in <code>tempdb</code> when the SQL Server service restarts?</li>
+          </ol>
+          <button class="answers-toggle">
+            <span class="toggle-icon">▼</span> Show Answers
+          </button>
+          <div class="answers-panel">
+            <ol>
+              <li><strong>10 GB</strong> per database</li>
+              <li><strong>master</strong></li>
+              <li><strong>Mixed Mode</strong> (SQL Server and Windows Authentication)</li>
+              <li><strong>MSSQLSERVER</strong></li>
+              <li>All data in <code>tempdb</code> is <strong>lost</strong> — tempdb is recreated from <code>model</code> on every service start</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">01</div>
+            <div>
+              <div class="lab-title">Explore SSMS &amp; Connect to an Instance</div>
+              <div class="lab-meta">
+                <span class="tag orange">~30 min</span>
+                <span class="tag">sysadmin required</span>
+                <span class="tag green">No cleanup needed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 01</div>
+              <h3>Your First Day at NovaMart</h3>
+              <p>Budi (IT Manager) walks you through the server room. There is a Windows Server with SQL Server 2022 already installed. Your job today: open SSMS for the first time, connect to the instance, and understand what you are working with.</p>
+              <p style="margin-top:8px">By end of day you should be able to answer Budi's question: <em>"What version are we running and which system databases are on this server?"</em></p>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Connect to the Instance</div>
+              <ol class="steps">
+                <li><div class="step-body"><p>Open <strong>SQL Server Management Studio</strong> from the Start menu.</p></div></li>
+                <li><div class="step-body"><p>The <strong>Connect to Server</strong> dialog opens automatically. If it does not, click <strong>File → Connect Object Explorer</strong>.</p></div></li>
+                <li><div class="step-body">
+                  <p>Set the following fields:</p>
+                  <div class="table-wrap"><table><thead><tr><th>Field</th><th>Value</th></tr></thead><tbody>
+                    <tr><td>Server type</td><td>Database Engine</td></tr>
+                    <tr><td>Server name</td><td><code>.\</code> for a local default instance</td></tr>
+                    <tr><td>Authentication</td><td>Windows Authentication</td></tr>
+                  </tbody></table></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Click <strong>Connect</strong>.</p>
+                  <div class="expected">Object Explorer shows your server name with a green connected icon.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Explore Object Explorer</div>
+              <ol class="steps">
+                <li><div class="step-body"><p>In Object Explorer, expand your server node. You should see: Databases, Security, Server Objects, Management, SQL Server Agent.</p></div></li>
+                <li><div class="step-body"><p>Expand <strong>Databases → System Databases</strong>.</p><div class="expected">You can see: master, model, msdb, tempdb.</div></div></li>
+                <li><div class="step-body"><p>Right-click <strong>master → Properties</strong>. Note the <strong>Files</strong> page — observe the <code>.mdf</code> and <code>.ldf</code> file paths. Click <strong>Cancel</strong>.</p></div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Query the Instance Version</div>
+              <ol class="steps">
+                <li><div class="step-body"><p>Click <strong>New Query</strong> in the SSMS toolbar.</p></div></li>
+                <li><div class="step-body">
+                  <p>Execute the following:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>SELECT @@VERSION;</code></pre></div>
+                  <div class="expected">A single row containing the SQL Server version string, e.g. <em>Microsoft SQL Server 2022 ... Developer Edition (64-bit)</em></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Run the following to list all databases on the instance:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>SELECT name, database_id, state_desc, recovery_model_desc
+FROM   sys.databases
+ORDER  BY database_id;</code></pre></div>
+                  <div class="expected">At least 4 rows (master, tempdb, model, msdb) with state_desc = ONLINE.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — Check Server Properties</div>
+              <ol class="steps">
+                <li><div class="step-body"><p>In Object Explorer, right-click your server → <strong>Properties</strong>.</p></div></li>
+                <li><div class="step-body"><p>On the <strong>General</strong> page, note: Product version, Operating system, Platform.</p></div></li>
+                <li><div class="step-body"><p>Click the <strong>Security</strong> page. Observe the current <strong>Server authentication</strong> mode.</p></div></li>
+                <li><div class="step-body"><p>Click the <strong>Memory</strong> page. Note the <strong>Maximum server memory (MB)</strong> value (default is 2,147,483,647 — unlimited). Click <strong>Cancel</strong>.</p></div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part E — Identify Authentication Mode via T-SQL</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- Returns 1 = Windows Auth only,  0 = Mixed Mode
+SELECT SERVERPROPERTY('IsIntegratedSecurityOnly') AS WindowsAuthOnly;</code></pre></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Run the following to see which logins currently exist:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>SELECT name, type_desc, is_disabled
+FROM   sys.server_principals
+WHERE  type IN ('S','U','G')   -- SQL login, Windows user, Windows group
+ORDER  BY type_desc, name;</code></pre></div>
+                  <div class="expected">You should see at least <code>sa</code> (SQL login) and your Windows account.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span>SSMS connects to the instance without error</li>
+              <li><span class="check-box"></span>System Databases folder shows all four system DBs</li>
+              <li><span class="check-box"></span><code>SELECT @@VERSION</code> returns a SQL Server 2019 or 2022 result</li>
+              <li><span class="check-box"></span><code>sys.databases</code> query returns at least 4 rows, all ONLINE</li>
+              <li><span class="check-box"></span>Server Properties dialog shows Security page with current auth mode</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table class="trouble-table">
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>Cannot connect to .\</td><td>SQL Server service not running</td><td>Open <strong>services.msc</strong>, start <strong>SQL Server (MSSQLSERVER)</strong></td></tr>
+                  <tr><td>Login failed for user</td><td>Account not mapped to a login</td><td>Connect using a local Windows admin account (auto-mapped to sysadmin)</td></tr>
+                  <tr><td>Object Explorer shows only one database</td><td>SQL Server Browser not running</td><td>Start <strong>SQL Server Browser</strong> in services.msc</td></tr>
+                  <tr><td><code>SELECT @@VERSION</code> returns error</td><td>Query editor not connected</td><td>Check the connection indicator in the SSMS status bar</td></tr>
+                  <tr><td>Server Properties page greyed out</td><td>Insufficient permissions</td><td>Ensure connected login has sysadmin role membership</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="callout success" style="margin-top:20px">
+              <div class="callout-icon">✓</div>
+              <div class="callout-body">
+                <strong>Cleanup</strong>
+                <p>No cleanup required — this lab is read-only. Move directly to Module 02.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-02.html" style="background:var(--orange);color:#fff;padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;transition:background var(--t)" onmouseover="this.style.background='var(--orange-d)'" onmouseout="this.style.background='var(--orange)'">Next: Module 02 →</a>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#editions">1.1 Editions</a></li>
+          <li><a href="#components">1.2 Components</a></li>
+          <li><a href="#instances">1.3 Instances</a></li>
+          <li><a href="#system-dbs">1.4 System Databases</a></li>
+          <li><a href="#auth-modes">1.5 Authentication Modes</a></li>
+          <li><a href="#ssms">1.6 SSMS Orientation</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 01</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>

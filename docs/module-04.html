@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M04: Tables &amp; Data Management — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item active">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M06–M11 Coming soon</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 1 › <span>Module 04</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 1 · Afternoon · 90 min</span>
+          <h1><span class="module-num">Module 04:</span> Tables &amp; Data Management</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 04</span>
+            <span class="tag">T-SQL CRUD</span>
+            <span class="tag blue">NovaMart HR Module</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Choose the appropriate SQL Server data type for common column scenarios</li>
+            <li>Create tables with PRIMARY KEY, FOREIGN KEY, UNIQUE, NOT NULL, DEFAULT, and CHECK constraints</li>
+            <li>Insert, update, and delete rows using T-SQL DML statements</li>
+            <li>Write SELECT queries with WHERE, ORDER BY, and JOIN</li>
+            <li>Explain why constraints exist and what violations look like</li>
+          </ul>
+        </div>
+
+        <!-- 4.1 Data Types -->
+        <h2 id="datatypes">4.1 Common Data Types</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Category</th><th>Type</th><th>Use Case</th></tr></thead>
+            <tbody>
+              <tr><td rowspan="4"><strong>Integer</strong></td><td><code>TINYINT</code></td><td>0–255 (status codes, small counters)</td></tr>
+              <tr><td><code>SMALLINT</code></td><td>-32,768 to 32,767</td></tr>
+              <tr><td><code>INT</code></td><td>Standard integer — most foreign keys and surrogate keys</td></tr>
+              <tr><td><code>BIGINT</code></td><td>Very large numbers — high-volume transaction IDs</td></tr>
+              <tr><td rowspan="2"><strong>Decimal</strong></td><td><code>DECIMAL(p,s)</code></td><td>Exact fixed-precision — money, quantities</td></tr>
+              <tr><td><code>MONEY</code></td><td>Convenient for currency — internally DECIMAL(19,4)</td></tr>
+              <tr><td rowspan="3"><strong>String</strong></td><td><code>CHAR(n)</code></td><td>Fixed-length — gender codes, ISO country codes</td></tr>
+              <tr><td><code>VARCHAR(n)</code></td><td>Variable-length ASCII — names, descriptions (up to 8000)</td></tr>
+              <tr><td><code>NVARCHAR(n)</code></td><td>Unicode variable-length — international text, use for all user-entered text</td></tr>
+              <tr><td rowspan="3"><strong>Date/Time</strong></td><td><code>DATE</code></td><td>Date only (no time) — hire dates, birth dates</td></tr>
+              <tr><td><code>DATETIME2</code></td><td>High-precision date and time — preferred over DATETIME</td></tr>
+              <tr><td><code>DATETIMEOFFSET</code></td><td>Date + time + timezone offset — multi-region applications</td></tr>
+              <tr><td><strong>Binary</strong></td><td><code>UNIQUEIDENTIFIER</code></td><td>GUIDs — useful for distributed systems</td></tr>
+              <tr><td><strong>Other</strong></td><td><code>BIT</code></td><td>Boolean — 0/1/NULL for flag columns</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>NVARCHAR vs VARCHAR</strong>
+            <p>Use <code>NVARCHAR</code> for any column that might store non-ASCII characters (e.g., Indonesian, Chinese, Arabic). Use <code>VARCHAR</code> only when you know the data will always be ASCII and storage space is critical.</p>
+          </div>
+        </div>
+
+        <!-- 4.2 Constraints -->
+        <h2 id="constraints">4.2 Constraints</h2>
+        <p>Constraints enforce data integrity at the database level — they cannot be bypassed by the application layer.</p>
+        <h3>PRIMARY KEY</h3>
+        <p>Uniquely identifies each row. Automatically creates a clustered index. A table can have only one primary key. NULL values are not allowed.</p>
+        <h3>FOREIGN KEY</h3>
+        <p>Enforces referential integrity between two tables. A value in the child column must exist in the parent table's referenced column (or be NULL). Prevents orphaned rows.</p>
+        <h3>UNIQUE</h3>
+        <p>Ensures all values in a column (or combination of columns) are unique across the table. Unlike PRIMARY KEY, multiple UNIQUE constraints can exist and NULLs are permitted (but only one NULL).</p>
+        <h3>NOT NULL</h3>
+        <p>Ensures a column always has a value — NULL is rejected on insert/update.</p>
+        <h3>DEFAULT</h3>
+        <p>Provides an automatic value if the column is omitted from an INSERT statement.</p>
+        <h3>CHECK</h3>
+        <p>Validates that column values meet a Boolean condition. For example, salary must be greater than 0.</p>
+
+        <!-- 4.3 CREATE TABLE -->
+        <h2 id="create-table">4.3 CREATE TABLE</h2>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Department table</span><button class="copy-btn">COPY</button></div>
+          <pre><code>USE NovaMart;
+GO
+
+CREATE TABLE dbo.Department (
+    DeptID   INT          NOT NULL IDENTITY(1,1),
+    DeptName NVARCHAR(50) NOT NULL,
+    Location NVARCHAR(50) NOT NULL,
+    CONSTRAINT PK_Department PRIMARY KEY (DeptID),
+    CONSTRAINT UQ_Department_Name UNIQUE (DeptName)
+);
+GO</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Employee table with FK and CHECK</span><button class="copy-btn">COPY</button></div>
+          <pre><code>CREATE TABLE dbo.Employee (
+    EmpID    INT           NOT NULL IDENTITY(1,1),
+    FullName NVARCHAR(100) NOT NULL,
+    DeptID   INT           NOT NULL,
+    Salary   DECIMAL(12,2) NOT NULL,
+    HireDate DATE          NOT NULL DEFAULT GETDATE(),
+    Email    NVARCHAR(150) NULL,
+    CONSTRAINT PK_Employee    PRIMARY KEY (EmpID),
+    CONSTRAINT FK_Emp_Dept    FOREIGN KEY (DeptID) REFERENCES dbo.Department (DeptID),
+    CONSTRAINT CHK_Emp_Salary CHECK (Salary > 0),
+    CONSTRAINT UQ_Emp_Email   UNIQUE (Email)
+);
+GO</code></pre>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>IDENTITY(1,1)</strong>
+            <p><code>IDENTITY(seed, increment)</code> auto-generates sequential integers. <code>IDENTITY(1,1)</code> starts at 1 and increments by 1. You cannot insert into an IDENTITY column directly unless you first run <code>SET IDENTITY_INSERT tablename ON</code>.</p>
+          </div>
+        </div>
+
+        <!-- 4.4 INSERT -->
+        <h2 id="insert">4.4 INSERT — Adding Data</h2>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Single row insert
+INSERT INTO dbo.Department (DeptName, Location)
+VALUES ('Human Resources', 'Head Office');
+
+-- Multiple rows in one statement
+INSERT INTO dbo.Department (DeptName, Location)
+VALUES ('Warehouse',  'Depot Building'),
+       ('Finance',    'Head Office'),
+       ('IT',         'Server Room');
+
+-- Insert employee (DeptID 1 = HR)
+INSERT INTO dbo.Employee (FullName, DeptID, Salary, HireDate, Email)
+VALUES ('Sari Dewi',    1, 6500000, '2020-03-15', 'sari@novamart.id'),
+       ('Agus Santoso', 2, 5800000, '2019-07-01', 'agus@novamart.id'),
+       ('Dian Rahayu',  3, 7200000, '2021-01-10', 'dian@novamart.id');
+GO</code></pre>
+        </div>
+
+        <!-- 4.5 SELECT -->
+        <h2 id="select">4.5 SELECT — Querying Data</h2>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- All columns
+SELECT * FROM dbo.Employee;
+
+-- Specific columns with alias
+SELECT EmpID, FullName AS Name, Salary
+FROM   dbo.Employee;
+
+-- Filter and sort
+SELECT EmpID, FullName, Salary
+FROM   dbo.Employee
+WHERE  Salary > 6000000
+ORDER  BY Salary DESC;
+
+-- INNER JOIN: employees with their department names
+SELECT e.EmpID, e.FullName, d.DeptName, e.Salary
+FROM   dbo.Employee    e
+INNER JOIN dbo.Department d ON e.DeptID = d.DeptID
+ORDER  BY d.DeptName, e.FullName;
+
+-- Aggregate: average salary by department
+SELECT d.DeptName, COUNT(e.EmpID) AS HeadCount,
+       AVG(e.Salary) AS AvgSalary
+FROM   dbo.Employee    e
+INNER JOIN dbo.Department d ON e.DeptID = d.DeptID
+GROUP  BY d.DeptName
+ORDER  BY d.DeptName;</code></pre>
+        </div>
+
+        <!-- 4.6 UPDATE / DELETE -->
+        <h2 id="update-delete">4.6 UPDATE and DELETE</h2>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- UPDATE: give Sari a raise
+UPDATE dbo.Employee
+SET    Salary = 7000000
+WHERE  FullName = 'Sari Dewi';
+
+-- Verify the change
+SELECT FullName, Salary FROM dbo.Employee WHERE FullName = 'Sari Dewi';
+
+-- DELETE: remove a specific row
+DELETE FROM dbo.Employee WHERE EmpID = 99;
+
+-- IMPORTANT: always use a WHERE clause with UPDATE and DELETE
+-- Running UPDATE or DELETE without WHERE will affect ALL rows
+</code></pre>
+        </div>
+        <div class="callout danger">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>Always Use a WHERE Clause</strong>
+            <p>An <code>UPDATE</code> or <code>DELETE</code> statement without a <code>WHERE</code> clause affects <strong>every row</strong> in the table. Before running a destructive DML, use <code>SELECT</code> with the same <code>WHERE</code> clause to confirm which rows will be affected.</p>
+          </div>
+        </div>
+
+        <!-- 4.7 Transactions -->
+        <h2 id="transactions">4.7 Basic Transactions</h2>
+        <p>Wrapping DML in an explicit transaction allows you to review changes before committing — a safety net for data corrections.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>BEGIN TRANSACTION;
+
+UPDATE dbo.Employee
+SET    Salary = 8000000
+WHERE  DeptID = 1;
+
+-- Check the changes before committing
+SELECT * FROM dbo.Employee WHERE DeptID = 1;
+
+-- If the result is correct:
+COMMIT TRANSACTION;
+
+-- If the result is wrong:
+-- ROLLBACK TRANSACTION;</code></pre>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>You need to store an employee's full name that may include Indonesian or Chinese characters. Which data type is most appropriate?</li>
+            <li>What constraint prevents a row in <code>dbo.Employee</code> from referencing a non-existent <code>DeptID</code>?</li>
+            <li>You run <code>INSERT INTO dbo.Employee (DeptID, Salary) VALUES (1, 0)</code>. Will the insert succeed? Why or why not?</li>
+            <li>How do you select all employees who earn more than 6,000,000 and sort them from highest to lowest salary?</li>
+            <li>What is the risk of running <code>DELETE FROM dbo.Employee</code> without a WHERE clause?</li>
+          </ol>
+          <button class="answers-toggle"><span class="toggle-icon">▼</span> Show Answers</button>
+          <div class="answers-panel">
+            <ol>
+              <li><code>NVARCHAR(n)</code> — supports Unicode characters</li>
+              <li><strong>FOREIGN KEY</strong> constraint on <code>DeptID</code> referencing <code>dbo.Department(DeptID)</code></li>
+              <li><strong>No</strong> — the <code>CHK_Emp_Salary</code> CHECK constraint requires <code>Salary &gt; 0</code>; a salary of 0 violates this constraint. Also <code>FullName</code> is NOT NULL so that column would fail too.</li>
+              <li><code>SELECT * FROM dbo.Employee WHERE Salary &gt; 6000000 ORDER BY Salary DESC;</code></li>
+              <li>It deletes <strong>every row</strong> in the table — all employee data is lost</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">04</div>
+            <div>
+              <div class="lab-title">Build the HR Module — Department &amp; Employee Tables</div>
+              <div class="lab-meta">
+                <span class="tag orange">~45 min</span>
+                <span class="tag">Requires: NovaMart DB</span>
+                <span class="tag blue">T-SQL CRUD</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 04</div>
+              <h3>Building the HR Module for Sari</h3>
+              <p>Sari (HR Manager) needs a place to store employee and department data. Previously this was an Excel spreadsheet on her desktop — no backups, no enforced business rules. Today you create the first production tables inside <code>NovaMart</code> with proper constraints.</p>
+              <p style="margin-top:8px">After this lab, Sari will be able to query her own data — but first you need to build the structure and load the sample data she provided.</p>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Create the Department Table</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+
+CREATE TABLE dbo.Department (
+    DeptID   INT          NOT NULL IDENTITY(1,1),
+    DeptName NVARCHAR(50) NOT NULL,
+    Location NVARCHAR(50) NOT NULL,
+    CONSTRAINT PK_Department PRIMARY KEY (DeptID),
+    CONSTRAINT UQ_Department_Name UNIQUE (DeptName)
+);
+GO</code></pre></div>
+                  <div class="expected">Command(s) completed successfully.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Insert the four departments:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>INSERT INTO dbo.Department (DeptName, Location)
+VALUES ('Human Resources', 'Head Office'),
+       ('Warehouse',       'Depot Building'),
+       ('Finance',         'Head Office'),
+       ('IT',              'Server Room');
+GO</code></pre></div>
+                  <div class="expected">4 rows affected.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Verify with a SELECT:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>SELECT * FROM dbo.Department;</code></pre></div>
+                  <div class="expected">4 rows returned. DeptID values 1–4 auto-assigned.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Create the Employee Table</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>CREATE TABLE dbo.Employee (
+    EmpID    INT           NOT NULL IDENTITY(1,1),
+    FullName NVARCHAR(100) NOT NULL,
+    DeptID   INT           NOT NULL,
+    Salary   DECIMAL(12,2) NOT NULL,
+    HireDate DATE          NOT NULL DEFAULT GETDATE(),
+    Email    NVARCHAR(150) NULL,
+    CONSTRAINT PK_Employee    PRIMARY KEY (EmpID),
+    CONSTRAINT FK_Emp_Dept    FOREIGN KEY (DeptID) REFERENCES dbo.Department (DeptID),
+    CONSTRAINT CHK_Emp_Salary CHECK (Salary > 0),
+    CONSTRAINT UQ_Emp_Email   UNIQUE (Email)
+);
+GO</code></pre></div>
+                  <div class="expected">Command(s) completed successfully.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Insert Employees</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>INSERT INTO dbo.Employee (FullName, DeptID, Salary, HireDate, Email)
+VALUES ('Sari Dewi',      1, 6500000,  '2020-03-15', 'sari@novamart.id'),
+       ('Agus Santoso',   2, 5800000,  '2019-07-01', 'agus@novamart.id'),
+       ('Dian Rahayu',    3, 7200000,  '2021-01-10', 'dian@novamart.id'),
+       ('Budi Hartono',   4, 9000000,  '2018-06-20', 'budi@novamart.id'),
+       ('Rina Wulandari', 1, 5200000,  '2022-05-02', NULL),
+       ('Joko Susilo',    2, 4800000,  '2021-11-15', NULL);
+GO</code></pre></div>
+                  <div class="expected">6 rows affected.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — Test Constraints</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Try to insert an employee with an invalid DeptID:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- This should FAIL with a foreign key violation
+INSERT INTO dbo.Employee (FullName, DeptID, Salary, HireDate)
+VALUES ('Test User', 99, 5000000, '2024-01-01');
+GO</code></pre></div>
+                  <div class="expected">Error: The INSERT statement conflicted with the FOREIGN KEY constraint "FK_Emp_Dept".</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Try to insert an employee with a negative salary:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- This should FAIL with a CHECK constraint violation
+INSERT INTO dbo.Employee (FullName, DeptID, Salary, HireDate)
+VALUES ('Test User', 1, -1000, '2024-01-01');
+GO</code></pre></div>
+                  <div class="expected">Error: The INSERT statement conflicted with the CHECK constraint "CHK_Emp_Salary".</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part E — UPDATE, DELETE, and JOIN Query</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Update Sari's salary:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>UPDATE dbo.Employee
+SET    Salary = 7000000
+WHERE  FullName = 'Sari Dewi';
+GO</code></pre></div>
+                  <div class="expected">1 row affected.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Run a join query to produce a combined report:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>SELECT e.EmpID, e.FullName, d.DeptName, d.Location,
+       e.Salary, e.HireDate
+FROM   dbo.Employee    e
+INNER JOIN dbo.Department d ON e.DeptID = d.DeptID
+ORDER  BY d.DeptName, e.FullName;</code></pre></div>
+                  <div class="expected">6 rows with department names and locations joined in. Sari's salary shows 7,000,000.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span><code>dbo.Department</code> table created with PK + UNIQUE constraint</li>
+              <li><span class="check-box"></span>4 departments inserted successfully</li>
+              <li><span class="check-box"></span><code>dbo.Employee</code> table created with PK, FK, CHECK, UNIQUE constraints</li>
+              <li><span class="check-box"></span>6 employees inserted successfully</li>
+              <li><span class="check-box"></span>Insert with invalid DeptID = 99 fails with FK error</li>
+              <li><span class="check-box"></span>Insert with Salary = -1000 fails with CHECK error</li>
+              <li><span class="check-box"></span>JOIN query returns 6 rows with correct department names</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>CREATE TABLE: invalid object name error</td><td>Not in NovaMart context</td><td>Add <code>USE NovaMart;</code> at the start of the script</td></tr>
+                  <tr><td>FK insert passes when it should fail</td><td>Table creation script did not include FK constraint</td><td>Check <code>dbo.Employee</code> via SSMS: expand Tables → Employee → Constraints</td></tr>
+                  <tr><td>UPDATE affects wrong number of rows</td><td>Name not unique in the table</td><td>Filter by EmpID instead: <code>WHERE EmpID = 1</code></td></tr>
+                  <tr><td>JOIN returns 0 rows</td><td>Data not inserted into both tables yet</td><td>Run SELECT on both tables to confirm rows exist</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout success" style="margin-top:20px">
+              <div class="callout-icon">✓</div>
+              <div class="callout-body"><strong>Result</strong><p>The NovaMart HR module is live. Sari's data is now in a structured, constraint-protected SQL database. Module 05 will give Sari the right level of access to query it.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-03.html" style="background:var(--surface-2);color:var(--text-2);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--border)">← Module 03</a>
+          <a href="module-05.html" style="background:var(--orange);color:#fff;padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none" onmouseover="this.style.background='var(--orange-d)'" onmouseout="this.style.background='var(--orange)'">Next: Module 05 →</a>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#datatypes">4.1 Data Types</a></li>
+          <li><a href="#constraints">4.2 Constraints</a></li>
+          <li><a href="#create-table">4.3 CREATE TABLE</a></li>
+          <li><a href="#insert">4.4 INSERT</a></li>
+          <li><a href="#select">4.5 SELECT</a></li>
+          <li><a href="#update-delete">4.6 UPDATE &amp; DELETE</a></li>
+          <li><a href="#transactions">4.7 Transactions</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 04</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>

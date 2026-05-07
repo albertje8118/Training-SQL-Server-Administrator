@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NovaMart DBA Training — SQL Server Administration</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* index-specific extras */
+    .hero-divider { width: 60px; height: 3px; background: var(--orange); border-radius: 2px; margin: 20px 0 28px; }
+    .dep-chain {
+      background: var(--code-bg);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+      margin: 20px 0;
+    }
+    .dep-chain pre {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--code-text);
+      padding: 16px 20px;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .ref-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    .ref-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }
+    .ref-block-title {
+      background: var(--surface-2);
+      padding: 8px 14px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-3);
+      border-bottom: 1px solid var(--border);
+    }
+    .ref-block pre {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      color: var(--code-text);
+      padding: 14px;
+      overflow-x: auto;
+      line-height: 1.7;
+    }
+    .checklist-env li { cursor: default; }
+    @media (max-width: 700px) { .ref-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div>
+        <div class="brand-title">NovaMart DBA</div>
+        <div class="brand-sub">SQL Server Training</div>
+      </div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item active">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M06 Backup &amp; Restore <span class="nav-badge">coming</span></a>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M07 Maintenance <span class="nav-badge">coming</span></a>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M08 SQL Agent <span class="nav-badge">coming</span></a>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M09 Monitoring <span class="nav-badge">coming</span></a>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M10 Troubleshooting <span class="nav-badge">coming</span></a>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M11 Import &amp; Export <span class="nav-badge">coming</span></a>
+    </nav>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">NovaMart DBA Training</div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-eyebrow">Microsoft SQL Server Administration · 2-Day Course</div>
+      <h1>Build the <em>NovaMart</em><br>Database Infrastructure</h1>
+      <div class="hero-divider"></div>
+      <p>A hands-on, scenario-driven training course. You are NovaMart's first DBA — your mission is to build, configure, secure, and maintain a SQL Server environment from scratch over two days.</p>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-num">11</div><div class="stat-label">Modules</div></div>
+        <div class="stat"><div class="stat-num">11</div><div class="stat-label">Labs</div></div>
+        <div class="stat"><div class="stat-num">2</div><div class="stat-label">Days</div></div>
+        <div class="stat"><div class="stat-num">SQL</div><div class="stat-label">2019/2022</div></div>
+      </div>
+    </section>
+
+    <!-- SCENARIO CALLOUT -->
+    <div class="modules-section">
+      <div class="mission-box" style="margin-bottom:40px">
+        <div class="mission-label">Training Scenario</div>
+        <h3>The NovaMart Challenge</h3>
+        <p>NovaMart is a growing retail chain that suffered a catastrophic data loss incident. Management has approved a budget and hired you as their first DBA. Every lab in this course advances the story — from connecting to the server on Day 1 to importing the legacy product catalog on Day 2.</p>
+        <p style="margin-top:10px"><a href="scenario.html" style="color:var(--orange);font-weight:600">Read the full scenario →</a></p>
+      </div>
+
+      <!-- DAY 1 MODULES -->
+      <div class="section-header">
+        <h2>Day 1 — Build the Foundation</h2>
+        <span class="section-sub">5 modules · ~8 hours</span>
+      </div>
+      <div class="module-cards">
+        <a href="module-01.html" class="module-card">
+          <div class="card-num">Module 01</div>
+          <div class="card-title">SQL Server Overview &amp; Architecture</div>
+          <div class="card-desc">Editions, components, instances, system databases, authentication modes, and SSMS orientation.</div>
+          <div class="card-meta">
+            <span class="tag orange">Lab 01</span>
+            <span class="tag">90 min</span>
+            <span class="day-badge day1">Day 1 AM</span>
+          </div>
+        </a>
+        <a href="module-02.html" class="module-card">
+          <div class="card-num">Module 02</div>
+          <div class="card-title">Installing &amp; Configuring SQL Server</div>
+          <div class="card-desc">Pre-installation planning, installation walkthrough, post-install config, Configuration Manager, TCP/IP &amp; firewall.</div>
+          <div class="card-meta">
+            <span class="tag orange">Lab 02</span>
+            <span class="tag">120 min</span>
+            <span class="day-badge day1">Day 1 AM</span>
+          </div>
+        </a>
+        <a href="module-03.html" class="module-card">
+          <div class="card-num">Module 03</div>
+          <div class="card-title">Database Creation &amp; Management</div>
+          <div class="card-desc">File structure, recovery models, CREATE DATABASE via GUI &amp; T-SQL, filegroups, database properties.</div>
+          <div class="card-meta">
+            <span class="tag orange">Lab 03</span>
+            <span class="tag">90 min</span>
+            <span class="day-badge day1">Day 1 PM</span>
+          </div>
+        </a>
+        <a href="module-04.html" class="module-card">
+          <div class="card-num">Module 04</div>
+          <div class="card-title">Tables &amp; Data Management</div>
+          <div class="card-desc">Data types, all constraint types, INSERT/UPDATE/DELETE/SELECT with JOINs — the NovaMart HR module.</div>
+          <div class="card-meta">
+            <span class="tag orange">Lab 04</span>
+            <span class="tag">90 min</span>
+            <span class="day-badge day1">Day 1 PM</span>
+          </div>
+        </a>
+        <a href="module-05.html" class="module-card">
+          <div class="card-num">Module 05</div>
+          <div class="card-title">Security &amp; User Management</div>
+          <div class="card-desc">Login vs user model, server &amp; database roles, GRANT/DENY, testing permissions — give Sari read-only access.</div>
+          <div class="card-meta">
+            <span class="tag orange">Lab 05</span>
+            <span class="tag">90 min</span>
+            <span class="day-badge day1">Day 1 PM</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- DAY 2 MODULES -->
+      <div class="section-header" style="margin-top:48px">
+        <h2>Day 2 — Protect, Automate &amp; Operate</h2>
+        <span class="section-sub">6 modules · ~8 hours · coming soon</span>
+      </div>
+      <div class="module-cards">
+        <div class="module-card" style="opacity:.45;cursor:default">
+          <div class="card-num">Module 06</div>
+          <div class="card-title">Backup &amp; Restore</div>
+          <div class="card-desc">Full, differential &amp; log backups. Simple vs Full recovery model. Simulate disaster recovery.</div>
+          <div class="card-meta"><span class="tag">Coming soon</span><span class="day-badge day2">Day 2 AM</span></div>
+        </div>
+        <div class="module-card" style="opacity:.45;cursor:default">
+          <div class="card-num">Module 07</div>
+          <div class="card-title">Database Maintenance</div>
+          <div class="card-desc">Index rebuild/reorganize, Update Statistics, DBCC CHECKDB — keep NovaMart healthy.</div>
+          <div class="card-meta"><span class="tag">Coming soon</span><span class="day-badge day2">Day 2 AM</span></div>
+        </div>
+        <div class="module-card" style="opacity:.45;cursor:default">
+          <div class="card-num">Module 08</div>
+          <div class="card-title">SQL Server Agent &amp; Automation</div>
+          <div class="card-desc">Jobs, schedules, alerts. Schedule a nightly backup job — Budi wants zero manual intervention.</div>
+          <div class="card-meta"><span class="tag">Coming soon</span><span class="day-badge day2">Day 2 AM</span></div>
+        </div>
+        <div class="module-card" style="opacity:.45;cursor:default">
+          <div class="card-num">Module 09</div>
+          <div class="card-title">Monitoring &amp; Performance</div>
+          <div class="card-desc">Activity Monitor, DMVs, blocking &amp; deadlocks. Find why Dian's report takes 5 minutes.</div>
+          <div class="card-meta"><span class="tag">Coming soon</span><span class="day-badge day2">Day 2 PM</span></div>
+        </div>
+        <div class="module-card" style="opacity:.45;cursor:default">
+          <div class="card-num">Module 10</div>
+          <div class="card-title">Basic Troubleshooting</div>
+          <div class="card-desc">Error logs, login failures, connection issues. Work through Monday morning's three support tickets.</div>
+          <div class="card-meta"><span class="tag">Coming soon</span><span class="day-badge day2">Day 2 PM</span></div>
+        </div>
+        <div class="module-card" style="opacity:.45;cursor:default">
+          <div class="card-num">Module 11</div>
+          <div class="card-title">Data Import &amp; Export</div>
+          <div class="card-desc">Import/Export Wizard, CSV &amp; Excel integration. Migrate NovaMart's legacy product catalog.</div>
+          <div class="card-meta"><span class="tag">Coming soon</span><span class="day-badge day2">Day 2 PM</span></div>
+        </div>
+      </div>
+
+      <!-- LAB DEPENDENCIES -->
+      <div class="section-header" style="margin-top:48px">
+        <h2>Lab Dependency Chain</h2>
+        <span class="section-sub">Objects built in earlier labs are used in later labs</span>
+      </div>
+      <div class="dep-chain">
+        <pre>Lab 01  →  Read-only (no objects created)
+   │
+Lab 02  →  Configures services &amp; TCP/IP (no DB objects)
+   │
+Lab 03  →  Creates: NovaMart  (production DB)  +  NovaMart_Test (deleted at end)
+   │
+Lab 04  →  Creates: dbo.Department,  dbo.Employee  inside NovaMart
+   │
+Lab 05  →  Creates: login LabReader, user LabReader  →  tests access on NovaMart
+   │
+Lab 06  →  BACKUP DATABASE NovaMart  to  C:\SQLBackups\
+   │
+Lab 07  →  DBCC CHECKDB, index rebuild on NovaMart
+   │
+Lab 08  →  SQL Agent job: nightly backup of NovaMart
+   │
+Lab 09  →  Monitor NovaMart queries via DMVs
+   │
+Lab 11  →  Import CSV data INTO NovaMart</pre>
+      </div>
+
+      <!-- QUICK T-SQL REFERENCE -->
+      <div class="section-header" style="margin-top:48px">
+        <h2>Quick T-SQL Reference</h2>
+        <span class="section-sub">Keep handy during labs</span>
+      </div>
+      <div class="ref-grid">
+        <div class="ref-block">
+          <div class="ref-block-title">Connect &amp; Navigate</div>
+          <pre>SELECT @@VERSION;
+SELECT @@SERVERNAME;
+SELECT name FROM sys.databases;
+USE NovaMart;</pre>
+        </div>
+        <div class="ref-block">
+          <div class="ref-block-title">Databases</div>
+          <pre>CREATE DATABASE MyDB;
+DROP DATABASE MyDB;
+ALTER DATABASE MyDB SET RECOVERY FULL;
+SELECT name, recovery_model_desc
+FROM sys.databases;</pre>
+        </div>
+        <div class="ref-block">
+          <div class="ref-block-title">Tables &amp; Data</div>
+          <pre>SELECT * FROM INFORMATION_SCHEMA.TABLES;
+SELECT TOP 10 * FROM dbo.Employee;
+SELECT COUNT(*) FROM dbo.Employee;</pre>
+        </div>
+        <div class="ref-block">
+          <div class="ref-block-title">Security</div>
+          <pre>SELECT SYSTEM_USER, USER_NAME();
+SELECT IS_MEMBER('db_datareader');
+SELECT name, type_desc, is_disabled
+FROM sys.server_principals
+WHERE type IN ('S','U','G');</pre>
+        </div>
+      </div>
+
+      <!-- ENV CHECKLIST -->
+      <div class="section-header" style="margin-top:48px">
+        <h2>Lab Environment Checklist</h2>
+        <span class="section-sub">Verify before starting each lab day</span>
+      </div>
+      <ul class="checklist checklist-env">
+        <li><span class="check-box"></span>SQL Server service is <strong>Running</strong> (check in SQL Server Configuration Manager)</li>
+        <li><span class="check-box"></span>SQL Server Agent is <strong>Running</strong></li>
+        <li><span class="check-box"></span>TCP/IP is <strong>Enabled</strong> (required from Lab 02 onward)</li>
+        <li><span class="check-box"></span>Connected in SSMS with a <strong>sysadmin</strong> login</li>
+        <li><span class="check-box"></span><code>NovaMart</code> database exists (from Lab 03 onward)</li>
+        <li><span class="check-box"></span><code>dbo.Department</code> and <code>dbo.Employee</code> tables exist (from Lab 04 onward)</li>
+      </ul>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+
+<script src="shared.js"></script>
+</body>
+</html>

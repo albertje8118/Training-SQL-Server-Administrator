@@ -1,0 +1,21 @@
+# ── Ignore everything by default ──────────────────────────────
+*
+
+# ── Always keep these root files ──────────────────────────────
+!.gitignore
+!README.md
+
+# ── Tracked folders ───────────────────────────────────────────
+!docs/
+!docs/**
+
+!student-guide/
+!student-guide/**
+
+!contents/
+!contents/**
+
+# ── Exclude within contents/ ──────────────────────────────────
+contents/slides_preview/
+contents/**/*.jpg
+contents/*.jpg

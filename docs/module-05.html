@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M05: Security &amp; User Management — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item active">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M06–M11 Coming soon</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 1 › <span>Module 05</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 1 · Afternoon · 90 min</span>
+          <h1><span class="module-num">Module 05:</span> Security &amp; User Management</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 05</span>
+            <span class="tag">Logins · Roles · GRANT</span>
+            <span class="tag blue">Sari's Access</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Explain the two-level security model: server-level login vs database-level user</li>
+            <li>Create a SQL Server login and map it to a database user</li>
+            <li>Assign fixed server roles and fixed database roles</li>
+            <li>Use GRANT, DENY, and REVOKE to control object-level permissions</li>
+            <li>Test that permissions are enforced correctly</li>
+          </ul>
+        </div>
+
+        <!-- 5.1 Two-Level Security Model -->
+        <h2 id="model">5.1 The Two-Level Security Model</h2>
+        <p>SQL Server enforces a two-level security architecture. Understanding this is critical before creating any user accounts.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Level</th><th>Object</th><th>Scope</th><th>Controls</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Server</strong></td><td><strong>Login</strong></td><td>Instance-wide</td><td>Whether the connection is allowed to reach the instance at all</td></tr>
+              <tr><td><strong>Database</strong></td><td><strong>User</strong></td><td>Single database</td><td>What the login can do inside a specific database</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>Login vs User</strong>
+            <p>A <strong>Login</strong> authenticates the connection to the SQL Server instance (server-level). A <strong>User</strong> authorizes what that login can do inside a specific database (database-level). A login can be mapped to users in multiple databases, but typically one login → one user per database.</p>
+          </div>
+        </div>
+
+        <!-- 5.2 Login Types -->
+        <h2 id="logins">5.2 Login Types</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Type</th><th>Authentication</th><th>When to Use</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Windows Login (User)</strong></td><td>Windows/Kerberos</td><td>Domain users connecting from domain-joined workstations — preferred</td></tr>
+              <tr><td><strong>Windows Login (Group)</strong></td><td>Windows/Kerberos</td><td>Entire AD group granted access (e.g., DOMAIN\SQL_Readers)</td></tr>
+              <tr><td><strong>SQL Server Login</strong></td><td>SQL credentials</td><td>Application accounts, cross-domain scenarios, development/testing</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 5.3 Server Roles -->
+        <h2 id="server-roles">5.3 Fixed Server Roles</h2>
+        <p>Server roles control access at the instance level. They are pre-defined — you cannot create custom server roles in most editions.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Role</th><th>Permissions</th></tr></thead>
+            <tbody>
+              <tr><td><code>sysadmin</code></td><td>Full control over the entire instance — unrestricted. Assign only to DBAs.</td></tr>
+              <tr><td><code>serveradmin</code></td><td>Configure server settings, shut down the instance</td></tr>
+              <tr><td><code>securityadmin</code></td><td>Manage logins and login permissions — can effectively grant themselves sysadmin</td></tr>
+              <tr><td><code>processadmin</code></td><td>Kill processes (KILL command)</td></tr>
+              <tr><td><code>dbcreator</code></td><td>Create, alter, drop, and restore any database</td></tr>
+              <tr><td><code>diskadmin</code></td><td>Manage disk files</td></tr>
+              <tr><td><code>bulkadmin</code></td><td>Execute BULK INSERT statements</td></tr>
+              <tr><td><code>public</code></td><td>Minimum permissions — all logins are members by default</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>Principle of Least Privilege</strong>
+            <p>Assign only the permissions a user actually needs. Avoid granting <code>sysadmin</code> to application accounts or regular users. Regularly audit login memberships.</p>
+          </div>
+        </div>
+
+        <!-- 5.4 Database Roles -->
+        <h2 id="db-roles">5.4 Fixed Database Roles</h2>
+        <p>Database roles control access within a single database. The most commonly used:</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Role</th><th>Effective Permissions</th></tr></thead>
+            <tbody>
+              <tr><td><code>db_owner</code></td><td>Full control of the database — treat like a DBA for that DB</td></tr>
+              <tr><td><code>db_datareader</code></td><td>SELECT on all user tables and views in the database</td></tr>
+              <tr><td><code>db_datawriter</code></td><td>INSERT, UPDATE, DELETE on all user tables</td></tr>
+              <tr><td><code>db_ddladmin</code></td><td>Create, alter, drop schema objects (tables, indexes, views)</td></tr>
+              <tr><td><code>db_securityadmin</code></td><td>Manage database role membership and permissions</td></tr>
+              <tr><td><code>db_backupoperator</code></td><td>Back up the database</td></tr>
+              <tr><td><code>db_denydatareader</code></td><td>Explicitly denies SELECT — useful to block access to specific tables while allowing other permissions</td></tr>
+              <tr><td><code>db_denydatawriter</code></td><td>Explicitly denies INSERT/UPDATE/DELETE</td></tr>
+              <tr><td><code>public</code></td><td>Minimum permissions — all database users are members by default</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 5.5 Creating Logins -->
+        <h2 id="create-login">5.5 Creating a Login</h2>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — SQL Server Login</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Create a SQL Server login
+CREATE LOGIN LabReader
+WITH PASSWORD    = 'P@ssw0rd_Lab!',
+     CHECK_POLICY = ON,   -- enforce Windows password policy
+     CHECK_EXPIRATION = OFF;
+GO</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Windows Login</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Create a login for a Windows/AD account
+CREATE LOGIN [DOMAIN\sari.dewi] FROM WINDOWS;
+GO</code></pre>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>CHECK_POLICY</strong>
+            <p>Setting <code>CHECK_POLICY = ON</code> enforces Windows password complexity rules on the SQL login. Always set this to ON for production logins — do not create logins with blank or trivial passwords.</p>
+          </div>
+        </div>
+
+        <!-- 5.6 Creating Database Users -->
+        <h2 id="create-user">5.6 Mapping a Login to a Database User</h2>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Switch to the target database
+USE NovaMart;
+GO
+
+-- Create a database user mapped to the login
+CREATE USER LabReader FOR LOGIN LabReader;
+GO</code></pre>
+        </div>
+        <p>By default the new user has only <code>public</code> permissions — they cannot read any tables yet.</p>
+
+        <!-- 5.7 Assigning Roles -->
+        <h2 id="assign-roles">5.7 Assigning Database Roles</h2>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Grant read-only access (all tables in the database)
+ALTER ROLE db_datareader ADD MEMBER LabReader;
+GO
+
+-- Grant read/write access (add db_datawriter as well)
+ALTER ROLE db_datawriter ADD MEMBER LabReader;
+GO
+
+-- Remove role membership
+ALTER ROLE db_datawriter DROP MEMBER LabReader;
+GO</code></pre>
+        </div>
+
+        <!-- 5.8 GRANT DENY REVOKE -->
+        <h2 id="grant">5.8 GRANT, DENY, and REVOKE</h2>
+        <p>For more granular control beyond fixed roles, use explicit permission statements.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Statement</th><th>Effect</th></tr></thead>
+            <tbody>
+              <tr><td><code>GRANT</code></td><td>Allows the permission. Can be overridden by DENY.</td></tr>
+              <tr><td><code>DENY</code></td><td>Explicitly blocks the permission. DENY always wins — even if a role also grants it.</td></tr>
+              <tr><td><code>REVOKE</code></td><td>Removes a previously granted or denied permission. Returns the principal to whatever permissions exist from role membership.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Object-level permissions</span><button class="copy-btn">COPY</button></div>
+          <pre><code>USE NovaMart;
+GO
+
+-- Allow LabReader to SELECT from a specific table only
+GRANT SELECT ON dbo.Employee TO LabReader;
+
+-- Block LabReader from seeing the Department table (even if db_datareader is granted)
+DENY SELECT ON dbo.Department TO LabReader;
+
+-- Remove the DENY to restore default role-based access
+REVOKE SELECT ON dbo.Department FROM LabReader;
+GO</code></pre>
+        </div>
+
+        <!-- 5.9 Impersonation Testing -->
+        <h2 id="impersonate">5.9 Testing Permissions with EXECUTE AS</h2>
+        <p>Use <code>EXECUTE AS LOGIN</code> or <code>EXECUTE AS USER</code> to temporarily assume another identity and test permissions — without logging out of your session.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Impersonate LabReader
+EXECUTE AS LOGIN = 'LabReader';
+GO
+
+-- Test: this should succeed if LabReader has db_datareader
+SELECT TOP 5 * FROM dbo.Employee;
+
+-- Test: this should fail (INSERT not allowed for db_datareader)
+INSERT INTO dbo.Employee (FullName, DeptID, Salary, HireDate)
+VALUES ('Test', 1, 5000000, '2024-01-01');
+
+-- Return to your original login
+REVERT;
+GO</code></pre>
+        </div>
+
+        <!-- 5.10 Viewing Permissions -->
+        <h2 id="view-perms">5.10 Viewing Permissions</h2>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- All server logins
+SELECT name, type_desc, is_disabled, create_date
+FROM   sys.server_principals
+WHERE  type IN ('S','U','G')
+ORDER  BY type_desc, name;
+
+-- Role membership for a specific login
+SELECT r.name AS RoleName
+FROM   sys.server_role_members rm
+JOIN   sys.server_principals r ON rm.role_principal_id = r.principal_id
+JOIN   sys.server_principals m ON rm.member_principal_id = m.principal_id
+WHERE  m.name = 'LabReader';
+
+-- Database-level permissions for a user
+USE NovaMart;
+SELECT dp.name, p.permission_name, p.state_desc, p.class_desc, p.major_id
+FROM   sys.database_permissions p
+JOIN   sys.database_principals  dp ON p.grantee_principal_id = dp.principal_id
+WHERE  dp.name = 'LabReader';
+
+-- Current user context
+SELECT SYSTEM_USER AS Login, USER_NAME() AS DBUser;
+SELECT IS_MEMBER('db_datareader') AS IsMemberOfDatareader;</code></pre>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>What is the difference between a SQL Server <strong>Login</strong> and a database <strong>User</strong>?</li>
+            <li>You want Sari to read all tables in <code>NovaMart</code> but not modify any data. Which database role should you assign?</li>
+            <li>You grant <code>db_datareader</code> to a user, but then you also execute <code>DENY SELECT ON dbo.Employee TO username</code>. Can the user read <code>dbo.Employee</code>?</li>
+            <li>How do you temporarily test another user's permissions without logging out?</li>
+            <li>Which system view shows all server-level logins?</li>
+          </ol>
+          <button class="answers-toggle"><span class="toggle-icon">▼</span> Show Answers</button>
+          <div class="answers-panel">
+            <ol>
+              <li>A <strong>Login</strong> authenticates at the instance level (controls whether the connection is allowed). A <strong>User</strong> maps the login to a specific database and controls what the login can do inside that database.</li>
+              <li><code>db_datareader</code></li>
+              <li><strong>No</strong> — <code>DENY</code> always overrides <code>GRANT</code>. Even with <code>db_datareader</code>, the explicit DENY on <code>dbo.Employee</code> blocks the SELECT.</li>
+              <li>Use <code>EXECUTE AS LOGIN = 'username';</code> then <code>REVERT;</code> afterward to return to the original context.</li>
+              <li><code>sys.server_principals</code></li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">05</div>
+            <div>
+              <div class="lab-title">Giving Sari the Right Level of Access</div>
+              <div class="lab-meta">
+                <span class="tag orange">~40 min</span>
+                <span class="tag">Requires: NovaMart DB with data</span>
+                <span class="tag blue">Logins &amp; Roles</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 05</div>
+              <h3>Access Control for Sari, Agus, and Dian</h3>
+              <p>Budi has sent over the access requirements:</p>
+              <ul style="margin:8px 0 0 16px">
+                <li><strong>Sari (HR)</strong> — read-only access to NovaMart. Uses a SQL login.</li>
+                <li><strong>Agus (Warehouse)</strong> — read and write access to NovaMart. Uses a SQL login.</li>
+                <li><strong>Dian (Finance)</strong> — read-only, but must <em>not</em> see salary data. Uses a SQL login.</li>
+              </ul>
+              <p style="margin-top:8px">In a real deployment these would be Windows accounts. For the training lab we use SQL logins so the exercise works on any machine without a domain controller.</p>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Create Logins</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- Sari: read-only HR
+CREATE LOGIN LabSari
+WITH PASSWORD = 'P@ssw0rd_Sari!', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;
+
+-- Agus: warehouse read/write
+CREATE LOGIN LabAgus
+WITH PASSWORD = 'P@ssw0rd_Agus!', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;
+
+-- Dian: finance read-only (restricted salary view)
+CREATE LOGIN LabDian
+WITH PASSWORD = 'P@ssw0rd_Dian!', CHECK_POLICY = ON, CHECK_EXPIRATION = OFF;
+GO</code></pre></div>
+                  <div class="expected">3 commands, each completing successfully.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Create Database Users</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+
+CREATE USER LabSari FOR LOGIN LabSari;
+CREATE USER LabAgus FOR LOGIN LabAgus;
+CREATE USER LabDian FOR LOGIN LabDian;
+GO</code></pre></div>
+                  <div class="expected">3 commands completed successfully. In Object Explorer: NovaMart → Security → Users now shows LabSari, LabAgus, LabDian.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Assign Roles</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- Sari: read-only
+ALTER ROLE db_datareader ADD MEMBER LabSari;
+
+-- Agus: read and write
+ALTER ROLE db_datareader ADD MEMBER LabAgus;
+ALTER ROLE db_datawriter ADD MEMBER LabAgus;
+
+-- Dian: read-only
+ALTER ROLE db_datareader ADD MEMBER LabDian;
+GO</code></pre></div>
+                  <div class="expected">Commands complete successfully.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — Restrict Dian's Access to the Salary Column</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Dian should not see salary figures. Use column-level DENY:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- Deny Dian access to the Salary column specifically
+DENY SELECT ON dbo.Employee (Salary) TO LabDian;
+GO</code></pre></div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part E — Test Permissions</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Test Sari's read access:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>EXECUTE AS LOGIN = 'LabSari';
+GO
+SELECT * FROM dbo.Employee;     -- should succeed
+SELECT * FROM dbo.Department;   -- should succeed
+INSERT INTO dbo.Department (DeptName, Location) VALUES ('Test', 'Office'); -- should FAIL
+REVERT;
+GO</code></pre></div>
+                  <div class="expected">SELECT succeeds; INSERT fails with permission denied.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Test Agus's read/write access:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>EXECUTE AS LOGIN = 'LabAgus';
+GO
+INSERT INTO dbo.Department (DeptName, Location) VALUES ('TestDept', 'Office'); -- should succeed
+DELETE FROM dbo.Department WHERE DeptName = 'TestDept';   -- should succeed
+REVERT;
+GO</code></pre></div>
+                  <div class="expected">Both statements succeed for Agus.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Test Dian's column restriction:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>EXECUTE AS LOGIN = 'LabDian';
+GO
+SELECT EmpID, FullName, DeptID, HireDate FROM dbo.Employee;  -- should succeed
+SELECT EmpID, FullName, Salary            FROM dbo.Employee;  -- should FAIL
+REVERT;
+GO</code></pre></div>
+                  <div class="expected">First query succeeds. Second query fails: "The SELECT permission was denied on the column 'Salary'".</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part F — Connect as LabSari in a New SSMS Window (Optional)</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Open a <strong>new SSMS connection</strong>: File → Connect Object Explorer.</p>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Use <strong>SQL Server Authentication</strong>, enter login <code>LabSari</code> and the password you set. Connect.</p>
+                  <div class="expected">Connected. Note that Object Explorer shows only databases LabSari can see — limited compared to sysadmin.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Run <code>SELECT * FROM dbo.Employee;</code> and <code>INSERT INTO dbo.Department...</code> to confirm the read/write boundary.</p>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span>Logins LabSari, LabAgus, LabDian created successfully</li>
+              <li><span class="check-box"></span>Database users created and mapped to logins in NovaMart</li>
+              <li><span class="check-box"></span>LabSari has <code>db_datareader</code> only</li>
+              <li><span class="check-box"></span>LabAgus has both <code>db_datareader</code> and <code>db_datawriter</code></li>
+              <li><span class="check-box"></span>LabSari SELECT succeeds; INSERT fails with "permission denied"</li>
+              <li><span class="check-box"></span>LabAgus INSERT and DELETE both succeed</li>
+              <li><span class="check-box"></span>LabDian SELECT without Salary column succeeds; SELECT including Salary fails</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>CREATE LOGIN fails: password too weak</td><td>CHECK_POLICY ON + password doesn't meet complexity rules</td><td>Use a password with uppercase, lowercase, numbers, and special characters (e.g., <code>P@ssw0rd_Lab!</code>)</td></tr>
+                  <tr><td>Cannot login to SSMS with SQL login</td><td>Server is in Windows Auth only mode</td><td>Confirm Mixed Mode is enabled (Module 01, Section 1.5). Restart the service if you just changed it.</td></tr>
+                  <tr><td>EXECUTE AS fails: missing IMPERSONATE permission</td><td>Not running as sysadmin</td><td>Ensure you are connected with your original sysadmin login before running EXECUTE AS</td></tr>
+                  <tr><td>Dian can still see Salary</td><td>Column-level DENY not applied</td><td>Verify the DENY SELECT ON dbo.Employee (Salary) TO LabDian ran without error; re-run if needed</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout success" style="margin-top:20px">
+              <div class="callout-icon">✓</div>
+              <div class="callout-body">
+                <strong>Day 1 Complete!</strong>
+                <p>You have built the NovaMart database from scratch — instance configuration, production database creation, core tables with constraints, and controlled access for every user. Day 2 covers backup, maintenance, automation, monitoring, and data import.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-04.html" style="background:var(--surface-2);color:var(--text-2);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--border)">← Module 04</a>
+          <span style="background:var(--surface-2);color:var(--text-3);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;border:1px solid var(--border)">Day 2 Coming Soon →</span>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#model">5.1 Two-Level Security</a></li>
+          <li><a href="#logins">5.2 Login Types</a></li>
+          <li><a href="#server-roles">5.3 Server Roles</a></li>
+          <li><a href="#db-roles">5.4 Database Roles</a></li>
+          <li><a href="#create-login">5.5 Creating Logins</a></li>
+          <li><a href="#create-user">5.6 Mapping Users</a></li>
+          <li><a href="#assign-roles">5.7 Assigning Roles</a></li>
+          <li><a href="#grant">5.8 GRANT/DENY/REVOKE</a></li>
+          <li><a href="#impersonate">5.9 Testing Permissions</a></li>
+          <li><a href="#view-perms">5.10 Viewing Permissions</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 05</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>

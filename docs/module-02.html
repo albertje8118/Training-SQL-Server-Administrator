@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M02: Installing &amp; Configuring SQL Server — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item active">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="#" class="nav-item" style="opacity:.4;pointer-events:none">M06–M11 Coming soon</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 1 › <span>Module 02</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 1 · Morning · 120 min</span>
+          <h1><span class="module-num">Module 02:</span> Installing &amp; Configuring SQL Server</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 02</span>
+            <span class="tag">Config Manager</span>
+            <span class="tag blue">SQL Server 2019/2022</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Plan a SQL Server installation: hardware, storage, collation, and service accounts</li>
+            <li>Walk through the key stages of the SQL Server Installation Center</li>
+            <li>Perform critical post-installation configuration tasks</li>
+            <li>Use SQL Server Configuration Manager to manage services and network protocols</li>
+            <li>Enable and verify TCP/IP for remote connections</li>
+          </ul>
+        </div>
+
+        <!-- 2.1 Pre-install -->
+        <h2 id="preinstall">2.1 Pre-Installation Planning</h2>
+        <h3>Hardware Requirements (Minimum for Lab)</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Resource</th><th>Minimum</th><th>Recommended (Production)</th></tr></thead>
+            <tbody>
+              <tr><td>CPU</td><td>1.4 GHz x64</td><td>4+ cores</td></tr>
+              <tr><td>RAM</td><td>1 GB (Express) / 4 GB (others)</td><td>16 GB+</td></tr>
+              <tr><td>Disk — OS</td><td>6 GB free</td><td>Separate fast disk</td></tr>
+              <tr><td>Disk — Data</td><td>Same as OS (lab)</td><td>Dedicated SSD/NVMe</td></tr>
+              <tr><td>Disk — TempDB</td><td>Same as OS (lab)</td><td>Fastest disk, separate spindle</td></tr>
+              <tr><td>OS</td><td>Windows Server 2016</td><td>Windows Server 2022</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Storage Planning</h3>
+        <p>Separate data, log, and backup files onto different physical disks to maximize I/O throughput and protect against disk failures.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>File Type</th><th>Extension</th><th>Best Practice</th></tr></thead>
+            <tbody>
+              <tr><td>Data files</td><td><code>.mdf</code> / <code>.ndf</code></td><td>RAID 10 or SSD volume</td></tr>
+              <tr><td>Log files</td><td><code>.ldf</code></td><td>Separate volume — sequential writes benefit from fast sequential I/O</td></tr>
+              <tr><td>TempDB</td><td><code>.mdf</code> / <code>.ldf</code></td><td>Fastest available disk; pre-size to avoid autogrowth</td></tr>
+              <tr><td>Backups</td><td><code>.bak</code></td><td>Separate volume or network path — never on same disk as data</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Collation</h3>
+        <p>Collation determines how SQL Server sorts and compares character data (case sensitivity, accent sensitivity, etc.). Choose carefully before installation — changing collation after the fact is complex.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Collation</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>SQL_Latin1_General_CP1_CI_AS</code></td><td>Common default in many installations. CI = Case Insensitive, AS = Accent Sensitive</td></tr>
+              <tr><td><code>Latin1_General_CI_AS</code></td><td>Windows collation — preferred for new installations</td></tr>
+              <tr><td><code>Latin1_General_CS_AS</code></td><td>Case Sensitive — <code>'Admin' ≠ 'admin'</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>Training VM Collation</strong>
+            <p>The training VM uses the installer default. Do not change collation during the lab. Note the value during installation for documentation purposes.</p>
+          </div>
+        </div>
+
+        <h3>Service Accounts</h3>
+        <p>Each SQL Server service should run under a dedicated, least-privilege account. Avoid using a local Administrator or Domain Admin account.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Service</th><th>Recommended Account</th></tr></thead>
+            <tbody>
+              <tr><td>SQL Server (Database Engine)</td><td>Managed Service Account (MSA) or <code>NT SERVICE\MSSQLSERVER</code></td></tr>
+              <tr><td>SQL Server Agent</td><td>Managed Service Account or <code>NT SERVICE\SQLSERVERAGENT</code></td></tr>
+              <tr><td>SQL Server Browser</td><td><code>NT AUTHORITY\LOCAL SERVICE</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 2.2 Installation -->
+        <h2 id="installation">2.2 Installation Walkthrough</h2>
+        <p>SQL Server is installed from the <strong>Installation Center</strong>, launched by running <code>setup.exe</code> from the SQL Server ISO or media folder.</p>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>Lab Note</strong>
+            <p>SQL Server is already installed on the training VM. Walk through this section with your instructor using the slides. In the lab (Part A), you will verify the installed instance and review Configuration Manager instead of running setup.exe again.</p>
+          </div>
+        </div>
+        <h3>Key Installation Steps</h3>
+        <ol>
+          <li>Run <code>setup.exe</code> → Installation Center opens.</li>
+          <li>Click <strong>Installation → New SQL Server stand-alone installation</strong>.</li>
+          <li><strong>Product Key</strong> — enter key or choose Developer/Evaluation edition.</li>
+          <li><strong>License Terms</strong> — accept the EULA.</li>
+          <li><strong>Microsoft Update</strong> — optionally check for updates.</li>
+          <li><strong>Install Rules</strong> — setup checks prerequisites. Fix any failures before continuing.</li>
+          <li><strong>Feature Selection</strong> — at minimum, select: Database Engine Services, SQL Server Replication (optional), Management Tools – Basic (if SSMS not already installed).</li>
+          <li><strong>Instance Configuration</strong> — choose Default or Named instance. Record the instance name.</li>
+          <li><strong>Service Accounts</strong> — assign service accounts and set startup type.</li>
+          <li><strong>Database Engine Configuration</strong>:<ul>
+            <li><strong>Authentication Mode</strong> — choose Windows or Mixed Mode.</li>
+            <li><strong>Add Current User</strong> to sysadmin (required).</li>
+            <li><strong>Data Directories</strong> — set data, log, backup, and tempdb paths.</li>
+            <li><strong>TempDB</strong> tab — set number of data files (guideline: match core count, max 8).</li>
+          </ul></li>
+          <li><strong>Ready to Install</strong> — review configuration summary then click <strong>Install</strong>.</li>
+        </ol>
+        <h3>Installation Duration</h3>
+        <p>A typical lab-grade installation completes in 5–15 minutes. Production installs with all features can take 30–60 minutes.</p>
+
+        <!-- 2.3 Post-install -->
+        <h2 id="postinstall">2.3 Post-Installation Configuration</h2>
+        <h3>Verify Service Startup Type</h3>
+        <p>Open <strong>SQL Server Configuration Manager</strong> (see Section 2.4). Verify that the Database Engine and SQL Server Agent services have <strong>Startup Type = Automatic</strong> so they restart after a server reboot.</p>
+        <h3>Enable the sa Login</h3>
+        <p>If you chose Mixed Mode, the <code>sa</code> login is disabled by default for security. Enable it only if required:</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Enable sa and set a strong password
+ALTER LOGIN sa ENABLE;
+ALTER LOGIN sa WITH PASSWORD = 'Str0ng!P@ssw0rd';
+GO</code></pre>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>Security Best Practice</strong>
+            <p>Keep <code>sa</code> disabled unless specifically required. Use named SQL logins or Windows Authentication for all application connections.</p>
+          </div>
+        </div>
+        <h3>Set Maximum Server Memory</h3>
+        <p>SQL Server will, by default, consume nearly all available RAM. Set a maximum to leave memory for the OS and other services:</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Example: cap SQL Server at 12 GB on a 16 GB server
+EXEC sp_configure 'show advanced options', 1;
+RECONFIGURE;
+EXEC sp_configure 'max server memory (MB)', 12288;
+RECONFIGURE;
+GO</code></pre>
+        </div>
+
+        <!-- 2.4 Config Manager -->
+        <h2 id="configmgr">2.4 SQL Server Configuration Manager</h2>
+        <p>Configuration Manager is the authoritative tool for managing SQL Server <em>services</em> and <em>network protocols</em>. Do not use <strong>services.msc</strong> to start/stop SQL Server — Configuration Manager is aware of clustered instances and dependent services.</p>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>Opening Configuration Manager</strong>
+            <p>Search for <strong>SQL Server Configuration Manager</strong> in the Start menu, or run: <code>SQLServerManager16.msc</code> (SQL Server 2022) / <code>SQLServerManager15.msc</code> (SQL Server 2019).</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Node</th><th>What You Can Do</th></tr></thead>
+            <tbody>
+              <tr><td>SQL Server Services</td><td>Start/Stop/Restart services; change service accounts; set startup type</td></tr>
+              <tr><td>SQL Server Network Configuration</td><td>Enable/disable protocols (TCP/IP, Named Pipes, Shared Memory) per instance</td></tr>
+              <tr><td>SQL Native Client Configuration</td><td>Client-side protocol order and aliases</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h3>Enable TCP/IP</h3>
+        <ol>
+          <li>Expand <strong>SQL Server Network Configuration → Protocols for MSSQLSERVER</strong>.</li>
+          <li>Right-click <strong>TCP/IP → Enable</strong>.</li>
+          <li>Double-click <strong>TCP/IP → IP Addresses tab</strong> → scroll to <strong>IPAll</strong>.</li>
+          <li>Set <strong>TCP Port = 1433</strong> for a default instance (or leave blank to use the dynamic port).</li>
+          <li>Click <strong>OK</strong>.</li>
+          <li>Restart the SQL Server service for the change to take effect.</li>
+        </ol>
+        <h3>Windows Firewall Rule</h3>
+        <p>Even after enabling TCP/IP inside SQL Server, Windows Firewall may block external connections. Create an inbound rule:</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">PowerShell (run as Administrator)</span><button class="copy-btn">COPY</button></div>
+          <pre><code>New-NetFirewallRule -DisplayName "SQL Server 1433" `
+    -Direction Inbound -Protocol TCP -LocalPort 1433 `
+    -Action Allow</code></pre>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>What is the recommended startup type for the SQL Server Agent service?</li>
+            <li>You installed SQL Server with Windows Authentication only but now an application from a different domain needs to connect. What must you change?</li>
+            <li>Which tool should you use to enable TCP/IP on an existing SQL Server instance?</li>
+            <li>After enabling TCP/IP in Configuration Manager, do you need to do anything else for the change to take effect?</li>
+            <li>What is the purpose of setting a maximum server memory value?</li>
+          </ol>
+          <button class="answers-toggle"><span class="toggle-icon">▼</span> Show Answers</button>
+          <div class="answers-panel">
+            <ol>
+              <li><strong>Automatic</strong> — so the service restarts after a server reboot without manual intervention</li>
+              <li>Change the authentication mode to <strong>Mixed Mode</strong> (SQL Server and Windows Authentication) in Server Properties → Security, then restart the service</li>
+              <li><strong>SQL Server Configuration Manager</strong></li>
+              <li>Yes — <strong>restart the SQL Server service</strong> for the network protocol change to take effect</li>
+              <li>To prevent SQL Server from consuming all RAM and starving the OS and other services</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">02</div>
+            <div>
+              <div class="lab-title">Configure Services, TCP/IP &amp; Verify Remote Connectivity</div>
+              <div class="lab-meta">
+                <span class="tag orange">~45 min</span>
+                <span class="tag">sysadmin + local admin</span>
+                <span class="tag blue">Config Manager</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 02</div>
+              <h3>Opening the Door for Remote Users</h3>
+              <p>Sari (HR) and Dian (Finance) sit at separate workstations across the building. Budi has assigned them Windows accounts and asked you to make sure they can connect to the SQL Server remotely using SSMS.</p>
+              <p style="margin-top:8px">Before you create any databases, you need to make sure the network layer is ready. Today's tasks: verify services are running, enable TCP/IP, configure the firewall, and test a remote connection.</p>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Verify Service Status and Startup Type</div>
+              <ol class="steps">
+                <li><div class="step-body"><p>Open <strong>SQL Server Configuration Manager</strong>.</p></div></li>
+                <li><div class="step-body">
+                  <p>Click <strong>SQL Server Services</strong>. Verify the following:</p>
+                  <div class="table-wrap"><table><thead><tr><th>Service</th><th>Expected State</th><th>Expected Startup Mode</th></tr></thead><tbody>
+                    <tr><td>SQL Server (MSSQLSERVER)</td><td>Running</td><td>Automatic</td></tr>
+                    <tr><td>SQL Server Agent (MSSQLSERVER)</td><td>Running or Stopped</td><td>Automatic</td></tr>
+                  </tbody></table></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>If the startup mode for either service is not <strong>Automatic</strong>, right-click it → <strong>Properties → Service tab → Start Mode → Automatic → OK</strong>.</p>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Enable TCP/IP Protocol</div>
+              <ol class="steps">
+                <li><div class="step-body"><p>In Configuration Manager, expand <strong>SQL Server Network Configuration → Protocols for MSSQLSERVER</strong>.</p></div></li>
+                <li><div class="step-body"><p>Check the <strong>TCP/IP</strong> status.</p><div class="expected">If already <strong>Enabled</strong> — note this and skip to Part C.</div></div></li>
+                <li><div class="step-body"><p>If <strong>Disabled</strong> — right-click <strong>TCP/IP → Enable</strong>.</p></div></li>
+                <li><div class="step-body"><p>Double-click <strong>TCP/IP → IP Addresses tab</strong> → scroll to <strong>IPAll</strong> → set <strong>TCP Port = 1433</strong>. Click <strong>OK</strong>.</p></div></li>
+                <li><div class="step-body">
+                  <p>Right-click <strong>SQL Server (MSSQLSERVER) → Restart</strong> to apply the protocol change.</p>
+                  <div class="expected">Service shows <em>Running</em> again after restart.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Create a Windows Firewall Rule</div>
+              <ol class="steps">
+                <li><div class="step-body"><p>Open <strong>Windows Defender Firewall with Advanced Security</strong> from the Start menu.</p></div></li>
+                <li><div class="step-body"><p>Click <strong>Inbound Rules → New Rule</strong>.</p></div></li>
+                <li><div class="step-body">
+                  <p>Follow the wizard: <strong>Port → TCP → Specific local ports: 1433 → Allow the connection → all profiles → Name: "SQL Server 1433"</strong>. Click <strong>Finish</strong>.</p>
+                  <div class="expected">A new inbound rule named "SQL Server 1433" appears in the list with green check.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — Verify TCP/IP Port via T-SQL</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>In SSMS, run:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- View current network listener information
+SELECT local_tcp_port, local_net_address
+FROM   sys.dm_exec_connections
+WHERE  session_id = @@SPID;</code></pre></div>
+                  <div class="expected">Returns the port (1433) and IP address your current SSMS session is using.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part E — Test Remote Connection</div>
+              <ol class="steps">
+                <li><div class="step-body"><p>On the <strong>same machine</strong>, open a new SSMS connection window: <strong>File → Connect Object Explorer</strong>.</p></div></li>
+                <li><div class="step-body">
+                  <p>In the Server name field, type the explicit IP address with port: <code>127.0.0.1,1433</code>. Leave Authentication as Windows Authentication. Click <strong>Connect</strong>.</p>
+                  <div class="expected">SSMS connects successfully — Object Explorer shows a second entry for the same instance connected via IP:port.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span>SQL Server service is Running with Startup Mode = Automatic</li>
+              <li><span class="check-box"></span>SQL Server Agent startup mode is set to Automatic</li>
+              <li><span class="check-box"></span>TCP/IP is Enabled in Configuration Manager</li>
+              <li><span class="check-box"></span>IPAll → TCP Port = 1433</li>
+              <li><span class="check-box"></span>Firewall inbound rule "SQL Server 1433" exists</li>
+              <li><span class="check-box"></span>SSMS connects via <code>127.0.0.1,1433</code> without error</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>Service fails to restart</td><td>Insufficient local admin rights</td><td>Run Configuration Manager as Administrator</td></tr>
+                  <tr><td>Connection via IP fails after enabling TCP/IP</td><td>Service not restarted</td><td>Restart SQL Server service in Configuration Manager</td></tr>
+                  <tr><td>Connection times out from another machine</td><td>Firewall blocking port 1433</td><td>Verify inbound firewall rule is enabled and profile matches (Domain/Private/Public)</td></tr>
+                  <tr><td>Port 1433 shown as dynamic in IPAll</td><td>TCP Port field was left blank</td><td>Re-enter 1433 explicitly in the TCP Port field (not TCP Dynamic Ports)</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="callout success" style="margin-top:20px">
+              <div class="callout-icon">✓</div>
+              <div class="callout-body"><strong>Cleanup</strong><p>No cleanup required. Configuration stays in place for all future labs. Proceed to Module 03.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-01.html" style="background:var(--surface-2);color:var(--text-2);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--border)">← Module 01</a>
+          <a href="module-03.html" style="background:var(--orange);color:#fff;padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none" onmouseover="this.style.background='var(--orange-d)'" onmouseout="this.style.background='var(--orange)'">Next: Module 03 →</a>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#preinstall">2.1 Pre-Install Planning</a></li>
+          <li><a href="#installation">2.2 Installation</a></li>
+          <li><a href="#postinstall">2.3 Post-Install Config</a></li>
+          <li><a href="#configmgr">2.4 Configuration Manager</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 02</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>
