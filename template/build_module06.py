@@ -160,15 +160,15 @@ models = [
 ]
 for i, (col, title, desc) in enumerate(models):
     x = Inches(0.45) + i * Inches(4.28)
-    rect(s, x, Inches(1.6), Inches(3.98), Inches(4.85), col)
+    rect(s, x, Inches(1.6), Inches(3.98), Inches(4.50), col)
     tb(s, title, x, Inches(1.72), Inches(3.98), Inches(0.45),
        fs=24, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    tb(s, desc, x + Inches(0.2), Inches(2.32), Inches(3.6), Inches(3.8),
+    tb(s, desc, x + Inches(0.2), Inches(2.32), Inches(3.6), Inches(3.45),
        fs=14, color=WHITE)
 
 alter_sql = "ALTER DATABASE NovaMart SET RECOVERY FULL;"
-code(s, alter_sql, Inches(0.45), Inches(6.52), Inches(8.0), Inches(0.62), fs=13)
-tb(s, "NovaMart should always use FULL recovery.", Inches(8.6), Inches(6.6), Inches(4.3),
+code(s, alter_sql, Inches(0.45), Inches(6.22), Inches(8.0), Inches(0.62), fs=13)
+tb(s, "NovaMart should always use FULL recovery.", Inches(8.6), Inches(6.28), Inches(4.3),
    Inches(0.42), fs=14, italic=True, color=MID_GRAY)
 footer(s, 3)
 
@@ -207,7 +207,7 @@ for i, (col, title, desc) in enumerate(backup_types):
        fs=14, color=MID_GRAY)
 
 tb(s, "Strategy for NovaMart:  Full (Sunday) → Differential (Mon–Sat) → Log every 30 min",
-   Inches(0.45), Inches(7.05), Inches(12.45), Inches(0.3), fs=13, bold=True,
+   Inches(0.45), Inches(6.60), Inches(12.45), Inches(0.3), fs=13, bold=True,
    color=DARK_TEXT)
 footer(s, 4)
 
@@ -336,10 +336,10 @@ rect(s, Inches(0.5), Inches(2.62), Inches(7.7), Inches(4.45), RGBColor(0x0A, 0x1
 tb(s, "STEPS", Inches(0.7), Inches(2.72), Inches(7.0), Inches(0.32),
    fs=14, bold=True, color=ORANGE)
 for i, step in enumerate(steps):
-    rect(s, Inches(0.7), Inches(3.12) + Inches(0.42) * i, Inches(0.32), Inches(0.32), ORANGE)
-    tb(s, str(i + 1), Inches(0.7), Inches(3.14) + Inches(0.42) * i, Inches(0.32), Inches(0.28),
+    rect(s, Inches(0.7), Inches(3.12) + Inches(0.38) * i, Inches(0.42), Inches(0.32), ORANGE)
+    tb(s, str(i + 1), Inches(0.7), Inches(3.14) + Inches(0.38) * i, Inches(0.42), Inches(0.28),
        fs=11, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    tb(s, step, Inches(1.15), Inches(3.10) + Inches(0.42) * i, Inches(6.8), Inches(0.35),
+    tb(s, step, Inches(1.22), Inches(3.10) + Inches(0.38) * i, Inches(6.73), Inches(0.32),
        fs=12, color=WHITE)
 
 rect(s, Inches(8.55), Inches(2.62), Inches(4.28), Inches(4.45), RGBColor(0x0A, 0x14, 0x32))
