@@ -207,7 +207,7 @@ for j, (state, meaning) in enumerate(states):
 tb(s, "Always check the SQL Server Error Log for the actual state — client messages may show only State 1.",
    Inches(0.45), Inches(6.28), Inches(12.45), Inches(0.32), fs=13, italic=True, color=DARK_TEXT)
 read_log_sql = "EXEC sp_readerrorlog 0, 1, 'Login failed', 'NovaMart';"
-code(s, read_log_sql, Inches(0.45), Inches(6.65), Inches(8.0), Inches(0.52), fs=12)
+code(s, read_log_sql, Inches(0.45), Inches(6.65), Inches(8.0), Inches(0.40), fs=12)
 footer(s, 4)
 
 
@@ -336,15 +336,15 @@ tickets = [
      "Resolve: add WHERE clause or proper filter → compare elapsed time"),
 ]
 for i, (col, title, desc) in enumerate(tickets):
-    y = Inches(2.62) + i * Inches(1.52)
-    rect(s, Inches(0.5), y, Inches(0.38), Inches(1.28), col)
+    y = Inches(2.62) + i * Inches(1.38)
+    rect(s, Inches(0.5), y, Inches(0.38), Inches(1.18), col)
     tb(s, title, Inches(1.05), y + Inches(0.08), Inches(11.75), Inches(0.32),
        fs=15, bold=True, color=WHITE)
-    tb(s, desc, Inches(1.05), y + Inches(0.48), Inches(11.75), Inches(0.65),
+    tb(s, desc, Inches(1.05), y + Inches(0.46), Inches(11.75), Inches(0.60),
        fs=13, color=MID_GRAY)
 
 tb(s, "Validation: all 3 tickets resolved, root cause identified, and steps documented in a comment block in SSMS.",
-   Inches(0.5), Inches(7.05), Inches(12.3), Inches(0.3), fs=12, italic=True, color=MID_GRAY)
+   Inches(0.5), Inches(6.72), Inches(12.3), Inches(0.28), fs=12, italic=True, color=MID_GRAY)
 footer(s, 7)
 
 

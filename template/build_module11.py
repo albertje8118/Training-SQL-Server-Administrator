@@ -304,14 +304,14 @@ etl_stages = [
 ]
 for i, (col, title, desc) in enumerate(etl_stages):
     x = Inches(0.45) + i * Inches(4.28)
-    rect(s, x, Inches(1.6), Inches(3.98), Inches(4.55), col)
+    rect(s, x, Inches(1.6), Inches(3.98), Inches(3.75), col)
     tb(s, title, x, Inches(1.72), Inches(3.98), Inches(0.45),
        fs=26, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    tb(s, desc, x + Inches(0.2), Inches(2.32), Inches(3.6), Inches(3.5),
+    tb(s, desc, x + Inches(0.2), Inches(2.32), Inches(3.6), Inches(2.95),
        fs=14, color=WHITE)
 
 tb(s, "SSIS (SQL Server Integration Services) — Visual Studio-based tool to build ETL packages with drag-and-drop data flows.",
-   Inches(0.45), Inches(6.28), Inches(12.45), Inches(0.38), fs=14, color=DARK_TEXT)
+   Inches(0.45), Inches(5.42), Inches(12.45), Inches(0.38), fs=14, color=DARK_TEXT)
 merge_sql = (
     "MERGE dbo.Product AS target\n"
     "USING dbo.ProductImport AS source ON target.ProductCode = source.ProductCode\n"
@@ -319,7 +319,7 @@ merge_sql = (
     "WHEN NOT MATCHED THEN INSERT (ProductCode, ProductName, UnitPrice)\n"
     "  VALUES (source.ProductCode, source.ProductName, source.UnitPrice);"
 )
-code(s, merge_sql, Inches(0.45), Inches(6.72), Inches(12.45), Inches(0.62), fs=11)
+code(s, merge_sql, Inches(0.45), Inches(5.88), Inches(12.45), Inches(1.12), fs=11)
 footer(s, 6)
 
 
