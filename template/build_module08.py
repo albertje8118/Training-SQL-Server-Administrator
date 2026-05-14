@@ -182,7 +182,7 @@ for i, (col, title, desc) in enumerate(components):
        fs=12, color=WHITE)
 
 tb(s, "Prerequisites: SQL Server Agent service must be Running. Check in SQL Server Configuration Manager.",
-   Inches(0.35), Inches(7.05), Inches(12.6), Inches(0.28), fs=12, italic=True, color=MID_GRAY)
+   Inches(0.35), Inches(6.72), Inches(12.6), Inches(0.28), fs=12, italic=True, color=MID_GRAY)
 footer(s, 3)
 
 
@@ -317,7 +317,7 @@ create_job_sql = (
     "EXEC sp_add_jobserver\n"
     "  @job_name = N'NovaMart Nightly Backup';"
 )
-code(s, create_job_sql, Inches(0.45), Inches(1.52), Inches(6.55), Inches(5.55), fs=11)
+code(s, create_job_sql, Inches(0.45), Inches(1.52), Inches(6.55), Inches(5.55), fs=10)
 
 annotations = [
     (ORANGE,   "sp_add_job",         "Creates the job container in msdb — just name and owner."),

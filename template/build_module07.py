@@ -228,7 +228,7 @@ rebuild_sql = "ALTER INDEX ALL ON dbo.Employee\nREBUILD WITH (ONLINE = OFF);"
 code(s, rebuild_sql, Inches(6.93), Inches(5.55), Inches(5.95), Inches(0.78), fs=12)
 
 tb(s, "Rebuild all indexes in NovaMart:  ALTER INDEX ALL ON <table> REBUILD;  — run per table.",
-   Inches(0.45), Inches(7.05), Inches(12.45), Inches(0.28), fs=12, italic=True, color=MID_GRAY)
+   Inches(0.45), Inches(6.60), Inches(12.45), Inches(0.28), fs=12, italic=True, color=MID_GRAY)
 footer(s, 4)
 
 
@@ -285,8 +285,8 @@ notes = [
 ]
 for i, note in enumerate(notes):
     col = [GREEN_OK, BLUE_ACC, RED_ERR, STEEL][i]
-    rect(s, Inches(0.45), Inches(6.02) + i * Inches(0.35), Inches(0.25), Inches(0.25), col)
-    tb(s, note, Inches(0.85), Inches(6.02) + i * Inches(0.35), Inches(12.05), Inches(0.3),
+    rect(s, Inches(0.45), Inches(5.90) + i * Inches(0.28), Inches(0.25), Inches(0.25), col)
+    tb(s, note, Inches(0.85), Inches(5.90) + i * Inches(0.28), Inches(12.05), Inches(0.3),
        fs=13, color=DARK_TEXT)
 footer(s, 5)
 

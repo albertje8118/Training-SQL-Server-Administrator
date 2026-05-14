@@ -177,7 +177,7 @@ for i, (col, title, desc) in enumerate(panels):
        fs=13, color=MID_GRAY)
 
 tb(s, "Open:  SSMS toolbar → Activity Monitor icon  — or — right-click instance → Activity Monitor",
-   Inches(0.45), Inches(7.05), Inches(12.45), Inches(0.28), fs=12, italic=True, color=DARK_TEXT)
+   Inches(0.45), Inches(6.72), Inches(12.45), Inches(0.28), fs=12, italic=True, color=DARK_TEXT)
 footer(s, 3)
 
 
@@ -370,10 +370,10 @@ rect(s, Inches(0.5), Inches(2.62), Inches(7.7), Inches(4.45), RGBColor(0x0A, 0x1
 tb(s, "STEPS", Inches(0.7), Inches(2.72), Inches(7.0), Inches(0.32),
    fs=14, bold=True, color=STEEL)
 for i, step in enumerate(steps):
-    rect(s, Inches(0.7), Inches(3.05) + Inches(0.41) * i, Inches(0.28), Inches(0.28), STEEL)
-    tb(s, str(i + 1), Inches(0.7), Inches(3.07) + Inches(0.41) * i, Inches(0.28), Inches(0.24),
+    rect(s, Inches(0.7), Inches(3.05) + Inches(0.41) * i, Inches(0.38), Inches(0.28), STEEL)
+    tb(s, str(i + 1), Inches(0.7), Inches(3.07) + Inches(0.41) * i, Inches(0.38), Inches(0.24),
        fs=11, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
-    tb(s, step, Inches(1.12), Inches(3.04) + Inches(0.41) * i, Inches(6.82), Inches(0.34),
+    tb(s, step, Inches(1.22), Inches(3.04) + Inches(0.41) * i, Inches(6.72), Inches(0.34),
        fs=12, color=WHITE)
 
 rect(s, Inches(8.55), Inches(2.62), Inches(4.28), Inches(4.45), RGBColor(0x0A, 0x14, 0x32))
