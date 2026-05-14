@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M09: Monitoring &amp; Performance — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="module-06.html" class="nav-item">M06 Backup &amp; Restore <span class="nav-badge">120m</span></a>
+      <a href="module-07.html" class="nav-item">M07 DB Maintenance <span class="nav-badge">90m</span></a>
+      <a href="module-08.html" class="nav-item">M08 SQL Agent <span class="nav-badge">90m</span></a>
+      <a href="module-09.html" class="nav-item active">M09 Monitoring <span class="nav-badge">90m</span></a>
+      <a href="module-10.html" class="nav-item">M10 Troubleshooting <span class="nav-badge">60m</span></a>
+      <a href="module-11.html" class="nav-item">M11 Import &amp; Export <span class="nav-badge">60m</span></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 2 › <span>Module 09</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 2 · Afternoon · 90 min</span>
+          <h1><span class="module-num">Module 09:</span> Monitoring &amp; Performance Basics</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 09</span>
+            <span class="tag">Activity Monitor · DMVs · Blocking · Execution Plans</span>
+            <span class="tag blue">NovaMart Health</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Use Activity Monitor to view active sessions and resource usage</li>
+            <li>Query key DMVs to identify long-running and expensive queries</li>
+            <li>Identify blocking chains and locate the head blocker</li>
+            <li>Interpret common wait statistics and what they indicate</li>
+            <li>Read a basic execution plan and identify warning signs</li>
+          </ul>
+        </div>
+
+        <!-- 9.1 Activity Monitor -->
+        <h2 id="activity-monitor">9.1 Activity Monitor</h2>
+        <p>Activity Monitor is the quickest way to get a snapshot of server health in SSMS. Open it with <kbd>Ctrl+Alt+A</kbd> or right-click the server in Object Explorer → <strong>Activity Monitor</strong>.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Pane</th><th>What It Shows</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Overview</strong></td><td>CPU, Wait, I/O, Batch Requests/sec — the at-a-glance health dials</td></tr>
+              <tr><td><strong>Processes</strong></td><td>All active sessions — SPID, login, database, status, wait type, CPU, memory</td></tr>
+              <tr><td><strong>Resource Waits</strong></td><td>Cumulative wait time grouped by category — spot the dominant bottleneck</td></tr>
+              <tr><td><strong>Data File I/O</strong></td><td>Reads, writes, and response time per database file — detect slow disks</td></tr>
+              <tr><td><strong>Recent Expensive Queries</strong></td><td>Top queries by CPU/duration from the plan cache</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>Activity Monitor Overhead</strong>
+            <p>Activity Monitor queries system views every 10 seconds by default. On a busy production server this is negligible, but set the refresh interval to 30–60 seconds if you are concerned. You can also pause the refresh while reading a snapshot.</p>
+          </div>
+        </div>
+
+        <!-- 9.2 Key DMVs -->
+        <h2 id="dmvs">9.2 Key Dynamic Management Views</h2>
+        <p>DMVs provide real-time server diagnostics through standard T-SQL queries. They are the foundation of every DBA monitoring script.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Active Requests (dm_exec_requests)</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Show all currently executing sessions with their query text
+SELECT
+  r.session_id,
+  r.status,
+  r.wait_type,
+  r.wait_time / 1000.0         AS WaitSec,
+  r.cpu_time                   AS CPU_ms,
+  r.total_elapsed_time / 1000  AS ElapsedSec,
+  r.blocking_session_id,
+  SUBSTRING(t.text, 1, 300)    AS QueryText
+FROM sys.dm_exec_requests r
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+WHERE r.session_id > 50        -- skip system sessions
+ORDER BY r.total_elapsed_time DESC;</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Top Wait Statistics (dm_os_wait_stats)</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Top 10 waits by total wait time since SQL Server last started
+SELECT TOP 10
+  wait_type,
+  waiting_tasks_count,
+  CAST(wait_time_ms / 1000.0 AS DECIMAL(10,1)) AS TotalWaitSec,
+  CAST(signal_wait_time_ms * 100.0 / wait_time_ms AS DECIMAL(5,1)) AS SignalPct
+FROM sys.dm_os_wait_stats
+WHERE wait_type NOT IN (
+  'SLEEP_TASK','BROKER_TO_FLUSH','BROKER_EVENTHANDLER',
+  'REQUEST_FOR_DEADLOCK_SEARCH','HADR_WORK_QUEUE','CLR_AUTO_EVENT',
+  'DISPATCHER_QUEUE_SEMAPHORE','XE_DISPATCHER_WAIT','FT_IFTS_SCHEDULER_IDLE_WAIT',
+  'SQLTRACE_BUFFER_FLUSH','CHECKPOINT_QUEUE','DBMIRROR_EVENTS_QUEUE',
+  'SQLTRACE_INCREMENTAL_FLUSH_SLEEP','WAITFOR','SLEEP_DBSTARTUP',
+  'SLEEP_MASTERDBREADY','SLEEP_MASTERMDREADY','SLEEP_MASTERUPGRADED',
+  'SLEEP_MSDBSTARTUP','SLEEP_SYSTEMTASK','SLEEP_TEMPDBSTARTUP',
+  'SNI_HTTP_ACCEPT','SP_SERVER_DIAGNOSTICS_SLEEP','SQLTRACE_WAIT_ENTRIES',
+  'WAIT_XTP_OFFLINE_CKPT_NEW_LOG','XE_TIMER_EVENT'
+)
+ORDER BY wait_time_ms DESC;</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Buffer Pool Usage by Database</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- How much memory each database is using in the buffer pool
+SELECT
+  DB_NAME(database_id) AS DatabaseName,
+  COUNT(*) * 8 / 1024  AS BufferMB
+FROM sys.dm_os_buffer_descriptors
+GROUP BY database_id
+ORDER BY BufferMB DESC;</code></pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>DMV</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>sys.dm_exec_requests</code></td><td>Currently executing requests — CPU, wait type, blocking</td></tr>
+              <tr><td><code>sys.dm_exec_sessions</code></td><td>All connected sessions (active and idle)</td></tr>
+              <tr><td><code>sys.dm_os_wait_stats</code></td><td>Cumulative wait statistics since last restart — identifies dominant bottleneck</td></tr>
+              <tr><td><code>sys.dm_os_buffer_descriptors</code></td><td>Buffer pool contents — memory usage per database</td></tr>
+              <tr><td><code>sys.dm_exec_query_stats</code></td><td>Aggregated performance stats per cached query plan</td></tr>
+              <tr><td><code>sys.dm_exec_sql_text</code></td><td>Returns the T-SQL text for a given sql_handle (used with CROSS APPLY)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 9.3 Blocking and Deadlocks -->
+        <h2 id="blocking">9.3 Blocking and Deadlocks</h2>
+        <p>Blocking occurs when one session holds a lock that another session needs. The waiting session is blocked until the first session commits or rolls back. In a blocking chain, there is always one <em>head blocker</em> — the session that started the problem.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Identify Blocking Chain</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Sessions that are blocked and what is blocking them
+SELECT
+  r.session_id                 AS BlockedSPID,
+  r.blocking_session_id        AS BlockedBy,
+  r.wait_type,
+  r.wait_time / 1000.0         AS WaitSec,
+  SUBSTRING(t.text, 1, 200)    AS BlockedQuery,
+  s.login_name,
+  s.host_name
+FROM sys.dm_exec_requests r
+JOIN sys.dm_exec_sessions   s ON r.session_id = s.session_id
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+WHERE r.blocking_session_id &lt;&gt; 0
+ORDER BY r.wait_time DESC;
+
+-- Kill a blocking session (use with caution)
+-- KILL 52;  -- replace 52 with the head blocker SPID</code></pre>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>KILL with Caution</strong>
+            <p>Running <code>KILL &lt;SPID&gt;</code> terminates the session and rolls back its open transaction. This can take time for large transactions. Always identify <em>why</em> blocking is happening (long-running transaction, missing indexes, bad query plan) rather than repeatedly killing sessions.</p>
+          </div>
+        </div>
+
+        <!-- 9.4 Wait Statistics Reference -->
+        <h2 id="wait-stats">9.4 Common Wait Statistics</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Wait Type</th><th>Indicates</th><th>Common Fix</th></tr></thead>
+            <tbody>
+              <tr><td><code>PAGEIOLATCH_SH / _EX</code></td><td>Waiting to read a page from disk — I/O pressure or insufficient memory</td><td>Add RAM, move to faster disk, add indexes to reduce I/O</td></tr>
+              <tr><td><code>LCK_M_X</code></td><td>Waiting for an exclusive lock — blocking or deadlocks</td><td>Optimise transactions, add row-level locking, use SNAPSHOT isolation</td></tr>
+              <tr><td><code>CXPACKET</code></td><td>Parallel query threads waiting for each other — skewed parallelism</td><td>Tune MAXDOP setting, add statistics, improve query or indexes</td></tr>
+              <tr><td><code>ASYNC_NETWORK_IO</code></td><td>SQL Server is waiting for the client to consume results — slow network or large result sets</td><td>Return fewer rows, paginate results, check network bandwidth</td></tr>
+              <tr><td><code>SOS_SCHEDULER_YIELD</code></td><td>Threads voluntarily yielding CPU — heavy CPU pressure</td><td>Identify top CPU queries, optimise or cache results</td></tr>
+              <tr><td><code>WRITELOG</code></td><td>Waiting for transaction log to be flushed to disk — slow log disk</td><td>Move log files to dedicated fast disk (SSD recommended)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 9.5 Execution Plans -->
+        <h2 id="exec-plans">9.5 Reading Execution Plans</h2>
+        <p>An execution plan shows the physical operations SQL Server uses to execute a query — table scans, index seeks, joins. Read plans <strong>right to left</strong> — data flows from leaf operators (data access) to the root (final output).</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Operator / Warning</th><th>Meaning</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>Table Scan</td><td>Reads every row in the table — no useful index available</td><td>Add an index on the filtered column(s)</td></tr>
+              <tr><td>Index Scan</td><td>Reads entire index — returning many rows or no SARGable predicate</td><td>Review WHERE clause; consider a covering index</td></tr>
+              <tr><td>Index Seek</td><td>Navigates the B-tree directly — efficient access <span style="color:var(--green-ok)">✓</span></td><td>No action needed — this is good</td></tr>
+              <tr><td>Key Lookup</td><td>Non-clustered index seek + extra round-trip to clustered index for additional columns</td><td>Add included columns to the non-clustered index</td></tr>
+              <tr><td>Yellow warning triangle</td><td>Missing statistics, implicit conversion, or missing index hint</td><td>Hover to read the warning text and act accordingly</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — View Actual Execution Plan</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Option 1: Turn on actual execution plan in SSMS toolbar (Ctrl+M)
+-- Then run your query — the plan appears in the Execution Plan tab
+
+-- Option 2: Use SET STATISTICS to view time and I/O cost
+SET STATISTICS TIME ON;
+SET STATISTICS IO ON;
+GO
+
+SELECT e.FullName, d.DeptName
+FROM   dbo.Employee   e
+JOIN   dbo.Department d ON e.DeptID = d.DeptID
+WHERE  e.Salary > 5000000;
+GO
+
+SET STATISTICS TIME OFF;
+SET STATISTICS IO OFF;
+GO</code></pre>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>In a blocking chain, which session should you identify before deciding to KILL?</li>
+            <li>What does <code>PAGEIOLATCH_SH</code> in wait statistics indicate?</li>
+            <li>A query plan shows a <em>Table Scan</em> on a million-row table. What should you do?</li>
+            <li>Which DMV shows all currently executing requests along with their wait type?</li>
+            <li>In which direction do you read an execution plan diagram in SSMS?</li>
+          </ol>
+          <button class="answers-toggle"><span class="toggle-icon">▼</span> Show Answers</button>
+          <div class="answers-panel">
+            <ol>
+              <li>The <strong>head blocker</strong> — the session with <code>blocking_session_id = 0</code> in <code>dm_exec_requests</code> that all other blocked sessions trace back to.</li>
+              <li>SQL Server is waiting to read a page from disk — indicates I/O pressure, usually caused by insufficient memory (buffer pool too small) or slow storage.</li>
+              <li>Add an index on the columns used in the WHERE clause or JOIN to enable an Index Seek instead of a Table Scan.</li>
+              <li><code>sys.dm_exec_requests</code> — join it with <code>sys.dm_exec_sql_text</code> using CROSS APPLY to get the query text.</li>
+              <li><strong>Right to left</strong> — data flows from the leaf operators on the right (data access) to the root operator on the left (final result).</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">09</div>
+            <div>
+              <div class="lab-title">Monitor NovaMart and Identify a Blocking Session</div>
+              <div class="lab-meta">
+                <span class="tag orange">~45 min</span>
+                <span class="tag">Requires: NovaMart DB · Two SSMS windows</span>
+                <span class="tag blue">Activity Monitor · DMVs</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 09</div>
+              <h3>Users Report Slow Responses — Investigate NovaMart</h3>
+              <p>End-users are reporting that NovaMart queries are running slowly this afternoon. Your job is to open Activity Monitor, query DMVs to find active requests, simulate a blocking scenario in two SSMS windows, identify the head blocker, and read an execution plan for a slow query.</p>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Open Activity Monitor</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>In SSMS, press <kbd>Ctrl+Alt+A</kbd> or right-click the server node → <strong>Activity Monitor</strong>. Expand the <strong>Processes</strong> and <strong>Resource Waits</strong> panes.</p>
+                  <div class="expected">Activity Monitor opens and shows active sessions. CPU and Batch Requests/sec charts are visible in the Overview section.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Query Active Requests via DMV</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>SELECT
+  r.session_id,
+  r.status,
+  r.wait_type,
+  r.cpu_time,
+  r.total_elapsed_time / 1000  AS ElapsedSec,
+  r.blocking_session_id,
+  SUBSTRING(t.text, 1, 200) AS QueryText
+FROM sys.dm_exec_requests r
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+WHERE r.session_id > 50
+ORDER BY r.total_elapsed_time DESC;</code></pre></div>
+                  <div class="expected">Result shows your own SELECT statement. blocking_session_id is 0 (no blocking yet).</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Simulate Blocking</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p><strong>Window 1 (Blocker):</strong> Open a new query window and run — do NOT commit or close:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL — Window 1</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+BEGIN TRANSACTION;
+UPDATE dbo.Employee SET Salary = Salary + 1 WHERE EmpID = 1;
+-- Do NOT commit — leave this window open</code></pre></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p><strong>Window 2 (Victim):</strong> Open a second query window and run:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL — Window 2</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+SELECT * FROM dbo.Employee WHERE EmpID = 1;</code></pre></div>
+                  <div class="expected">Window 2 hangs (spinning) — it is blocked waiting for Window 1 to release its lock.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p><strong>Window 3 (Monitor):</strong> Open a third query window and identify the head blocker:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL — Window 3</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>SELECT
+  r.session_id AS BlockedSPID,
+  r.blocking_session_id AS BlockedBy,
+  r.wait_type,
+  SUBSTRING(t.text, 1, 200) AS BlockedQuery
+FROM sys.dm_exec_requests r
+CROSS APPLY sys.dm_exec_sql_text(r.sql_handle) t
+WHERE r.blocking_session_id &lt;&gt; 0;</code></pre></div>
+                  <div class="expected">One row appears showing Window 2's SPID blocked by Window 1's SPID.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Resolve the blocking — go back to <strong>Window 1</strong> and commit:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL — Window 1</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>COMMIT;
+GO</code></pre></div>
+                  <div class="expected">Window 2 immediately returns its result. Window 3 DMV query shows no more blocked sessions.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — View Execution Plan</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>In a query window, press <kbd>Ctrl+M</kbd> to enable Actual Execution Plan, then run:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+SELECT e.FullName, d.DeptName, e.Salary
+FROM   dbo.Employee   e
+JOIN   dbo.Department d ON e.DeptID = d.DeptID
+WHERE  e.Salary > 5000000;</code></pre></div>
+                  <div class="expected">Execution Plan tab appears. Click the plan operators to see row counts and cost percentages. Note whether the plan uses Index Seek or Table Scan on the Employee table.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span>Activity Monitor opened and Processes pane visible</li>
+              <li><span class="check-box"></span>dm_exec_requests query returned active sessions</li>
+              <li><span class="check-box"></span>Blocking scenario simulated — Window 2 hung waiting</li>
+              <li><span class="check-box"></span>Head blocker identified via dm_exec_requests WHERE blocking_session_id &lt;&gt; 0</li>
+              <li><span class="check-box"></span>Blocking resolved by committing the transaction in Window 1</li>
+              <li><span class="check-box"></span>Execution plan viewed — operators identified (Seek vs Scan)</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>Activity Monitor shows "Refresh paused"</td><td>Monitor was manually paused or server is under very high load</td><td>Click Resume in the Activity Monitor toolbar</td></tr>
+                  <tr><td>Window 2 does not hang — returns immediately</td><td>READ COMMITTED SNAPSHOT ISOLATION (RCSI) is enabled on NovaMart</td><td>Disable RCSI: <code>ALTER DATABASE NovaMart SET READ_COMMITTED_SNAPSHOT OFF</code></td></tr>
+                  <tr><td>dm_exec_requests returns no rows</td><td>Query completed too fast or filter excludes system sessions</td><td>Remove the <code>WHERE r.session_id &gt; 50</code> filter temporarily</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-08.html" style="background:var(--surface-2);color:var(--text-2);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--border)">← Module 08</a>
+          <a href="module-10.html" style="background:var(--accent);color:#fff;padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none">Module 10 →</a>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#activity-monitor">9.1 Activity Monitor</a></li>
+          <li><a href="#dmvs">9.2 Key DMVs</a></li>
+          <li><a href="#blocking">9.3 Blocking &amp; Deadlocks</a></li>
+          <li><a href="#wait-stats">9.4 Wait Statistics</a></li>
+          <li><a href="#exec-plans">9.5 Execution Plans</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 09</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>

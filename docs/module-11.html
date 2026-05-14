@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M11: Data Import &amp; Export — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="module-06.html" class="nav-item">M06 Backup &amp; Restore <span class="nav-badge">120m</span></a>
+      <a href="module-07.html" class="nav-item">M07 DB Maintenance <span class="nav-badge">90m</span></a>
+      <a href="module-08.html" class="nav-item">M08 SQL Agent <span class="nav-badge">90m</span></a>
+      <a href="module-09.html" class="nav-item">M09 Monitoring <span class="nav-badge">90m</span></a>
+      <a href="module-10.html" class="nav-item">M10 Troubleshooting <span class="nav-badge">60m</span></a>
+      <a href="module-11.html" class="nav-item active">M11 Import &amp; Export <span class="nav-badge">60m</span></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 2 › <span>Module 11</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 2 · Afternoon · 60 min · Final Module</span>
+          <h1><span class="module-num">Module 11:</span> Data Import &amp; Export</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 11</span>
+            <span class="tag">Import/Export Wizard · BULK INSERT · BCP · ETL · MERGE</span>
+            <span class="tag blue">NovaMart Data Operations</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Use the SQL Server Import and Export Wizard to move data between sources</li>
+            <li>Import a CSV file using BULK INSERT with appropriate options</li>
+            <li>Use the BCP utility to export a table to a flat file from the command line</li>
+            <li>Explain the three stages of an ETL process and where SSIS fits</li>
+            <li>Write a MERGE statement to upsert data into a target table</li>
+          </ul>
+        </div>
+
+        <!-- 11.1 Import/Export Wizard -->
+        <h2 id="wizard">11.1 SQL Server Import and Export Wizard</h2>
+        <p>The Import and Export Wizard is the quickest way to move data between SQL Server, Excel, CSV files, and other OLE DB/ODBC sources without writing code. It generates an SSIS package under the hood.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Step</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>1 — Launch</td><td>SSMS → right-click database → <strong>Tasks → Import Data…</strong> or <strong>Export Data…</strong></td></tr>
+              <tr><td>2 — Choose Source</td><td>Select data source type (SQL Server Native Client, Flat File, Excel, etc.) and connection details</td></tr>
+              <tr><td>3 — Choose Destination</td><td>Select destination (SQL Server Native Client for another DB, or Flat File for CSV)</td></tr>
+              <tr><td>4 — Specify Copy or Query</td><td>Choose "Copy a table" for full table copy, or "Write a query" for filtered/transformed data</td></tr>
+              <tr><td>5 — Map Columns</td><td>Review column mappings — set data types, drop existing rows (truncate), or append</td></tr>
+              <tr><td>6 — Run or Save</td><td>Run immediately, or save as an SSIS .dtsx package for reuse</td></tr>
+              <tr><td>7 — Validate</td><td>Check row count in the destination table after completion</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>Excel Import Tip</strong>
+            <p>When importing from Excel, the wizard reads column data types from the first 8 rows. If a column has mixed types (text and numbers), it may import as NULL. Use CSV instead of Excel for reliable bulk imports into SQL Server.</p>
+          </div>
+        </div>
+
+        <!-- 11.2 BULK INSERT -->
+        <h2 id="bulk-insert">11.2 BULK INSERT</h2>
+        <p>BULK INSERT is a T-SQL statement for high-performance import of flat files. It is faster than the Wizard for large files and is easily scriptable for SQL Agent jobs.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — BULK INSERT from CSV</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Import a CSV file into the ProductImport staging table
+BULK INSERT dbo.ProductImport
+FROM 'C:\Data\products.csv'
+WITH (
+  FIRSTROW        = 2,           -- skip header row
+  FIELDTERMINATOR = ',',         -- comma-separated
+  ROWTERMINATOR   = '\n',        -- Unix line endings (use '\r\n' for Windows)
+  TABLOCK,                       -- table-level lock — faster for large files
+  BATCHSIZE       = 5000,        -- commit every 5000 rows
+  ERRORFILE       = 'C:\Data\products_errors.txt'  -- log rejected rows
+);
+GO
+
+-- Verify import
+SELECT COUNT(*) AS ImportedRows FROM dbo.ProductImport;
+SELECT TOP 10 * FROM dbo.ProductImport;</code></pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Option</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>FIRSTROW = 2</code></td><td>Skip the first row (header). Use 1 if there is no header.</td></tr>
+              <tr><td><code>FIELDTERMINATOR</code></td><td>Column delimiter — comma (,), tab (\t), pipe (|), etc.</td></tr>
+              <tr><td><code>ROWTERMINATOR</code></td><td>Row delimiter — <code>\n</code> for Unix, <code>\r\n</code> for Windows CSV files</td></tr>
+              <tr><td><code>TABLOCK</code></td><td>Takes a table-level lock during import — significantly faster for large files</td></tr>
+              <tr><td><code>BATCHSIZE</code></td><td>Commits data in batches — limits transaction log growth on large imports</td></tr>
+              <tr><td><code>ERRORFILE</code></td><td>Path to write rows that fail to import — useful for debugging</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>File Path Must Be Accessible to the SQL Server Service Account</strong>
+            <p>BULK INSERT reads the file from the SQL Server process, not from your client machine. The path must be a local path on the SQL Server or a UNC path accessible to the SQL Server service account. Paths mapped as a drive letter on your PC will fail.</p>
+          </div>
+        </div>
+
+        <!-- 11.3 BCP -->
+        <h2 id="bcp">11.3 BCP Utility</h2>
+        <p>BCP (Bulk Copy Program) is a command-line tool for high-speed data import and export. It runs on the client machine and transfers data over the network to/from SQL Server.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">Command Prompt — BCP Export and Import</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Export a full table to a CSV file (trusted Windows auth)
+bcp NovaMart.dbo.Employee out "C:\Data\employee_export.csv" ^
+    -S localhost -T -c -t "," -r "\n"
+
+-- Export using a query
+bcp "SELECT EmpID, FullName, Salary FROM NovaMart.dbo.Employee WHERE Salary > 5000000" ^
+    queryout "C:\Data\high_earners.csv" ^
+    -S localhost -T -c -t "," -r "\n"
+
+-- Import from a CSV file
+bcp NovaMart.dbo.ProductImport in "C:\Data\products.csv" ^
+    -S localhost -T -c -t "," -r "\n" -F 2</code></pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Switch</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>out</code></td><td>Export from SQL Server to a file</td></tr>
+              <tr><td><code>in</code></td><td>Import from a file into SQL Server</td></tr>
+              <tr><td><code>queryout</code></td><td>Export the result of a SELECT query to a file</td></tr>
+              <tr><td><code>-S</code></td><td>Server name (and instance if named: <code>-S server\instance</code>)</td></tr>
+              <tr><td><code>-T</code></td><td>Use trusted (Windows) authentication</td></tr>
+              <tr><td><code>-U / -P</code></td><td>SQL Server login and password (alternative to -T)</td></tr>
+              <tr><td><code>-c</code></td><td>Character mode — suitable for CSV/text files</td></tr>
+              <tr><td><code>-t</code></td><td>Field terminator</td></tr>
+              <tr><td><code>-r</code></td><td>Row terminator</td></tr>
+              <tr><td><code>-F 2</code></td><td>Start from row 2 (skip header during import)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 11.4 ETL Concepts -->
+        <h2 id="etl">11.4 ETL Concepts</h2>
+        <p>ETL — Extract, Transform, Load — is the pattern used to move data between systems, especially from transactional databases to data warehouses or reporting systems.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Stage</th><th>Purpose</th><th>Example</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Extract</strong></td><td>Pull data from one or more source systems</td><td>Query NovaMart Employee table; read a CSV file from HR</td></tr>
+              <tr><td><strong>Transform</strong></td><td>Clean, validate, deduplicate, and reshape the data</td><td>Standardise date formats; convert NULL salaries to 0; join with department lookup</td></tr>
+              <tr><td><strong>Load</strong></td><td>Write the transformed data to the destination</td><td>INSERT into a warehouse fact table; BULK INSERT into a staging table</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>SSIS — SQL Server Integration Services</strong>
+            <p>SSIS is Microsoft's enterprise ETL platform, included with SQL Server Developer, Standard, and Enterprise editions. It provides a visual design surface for building complex data pipelines with built-in transformations, error handling, and logging. For small-scale data movement within a single SQL Server instance, BULK INSERT, BCP, and the Import/Export Wizard are sufficient.</p>
+          </div>
+        </div>
+
+        <!-- 11.5 MERGE -->
+        <h2 id="merge">11.5 MERGE Statement (Upsert)</h2>
+        <p>MERGE performs INSERT, UPDATE, and DELETE in a single statement, matching source rows to target rows. It is the standard pattern for loading incremental data into a staging or production table.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — MERGE (Upsert)</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- MERGE: update existing products, insert new ones
+MERGE dbo.Product AS target
+USING dbo.ProductImport AS source
+  ON (target.ProductID = source.ProductID)
+
+WHEN MATCHED THEN
+  UPDATE SET
+    target.ProductName = source.ProductName,
+    target.Price       = source.Price,
+    target.Stock       = source.Stock
+
+WHEN NOT MATCHED BY TARGET THEN
+  INSERT (ProductID, ProductName, Price, Stock)
+  VALUES (source.ProductID, source.ProductName, source.Price, source.Stock)
+
+WHEN NOT MATCHED BY SOURCE THEN
+  DELETE;  -- remove products no longer in the source file
+GO
+
+-- Row count by operation
+-- Use OUTPUT clause to capture what was changed:
+MERGE dbo.Product AS target
+USING dbo.ProductImport AS source ON target.ProductID = source.ProductID
+WHEN MATCHED THEN UPDATE SET target.Price = source.Price
+WHEN NOT MATCHED BY TARGET THEN INSERT (ProductID, Price) VALUES (source.ProductID, source.Price)
+OUTPUT $action AS MergeAction, inserted.ProductID
+INTO @MergeLog (MergeAction, ProductID);</code></pre>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>MERGE Requires a Semicolon Terminator</strong>
+            <p>The MERGE statement must end with a semicolon (<code>;</code>). Omitting it causes a syntax error. This is one of the few T-SQL statements where the terminator is required, not optional.</p>
+          </div>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>What does <code>FIRSTROW = 2</code> do in a BULK INSERT statement?</li>
+            <li>Which BCP switch uses Windows (trusted) authentication?</li>
+            <li>What are the three stages of an ETL process?</li>
+            <li>In a MERGE statement, what does <code>WHEN NOT MATCHED BY TARGET</code> mean?</li>
+            <li>Why is TABLOCK recommended in BULK INSERT for large files?</li>
+          </ol>
+          <button class="answers-toggle"><span class="toggle-icon">▼</span> Show Answers</button>
+          <div class="answers-panel">
+            <ol>
+              <li>It tells BULK INSERT to skip the first row of the file (the header row) and start importing from row 2.</li>
+              <li>The <code>-T</code> switch uses trusted (Windows integrated) authentication.</li>
+              <li><strong>Extract</strong> (pull data from source), <strong>Transform</strong> (clean and reshape), <strong>Load</strong> (write to destination).</li>
+              <li>The row exists in the source but does NOT yet exist in the target table — so a new row should be inserted (INSERT action).</li>
+              <li>TABLOCK acquires a table-level lock for the duration of the import, which allows SQL Server to use minimal logging and batch commit efficiently, significantly reducing both import time and transaction log growth.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">11</div>
+            <div>
+              <div class="lab-title">Import Products CSV and Export Employee Data</div>
+              <div class="lab-meta">
+                <span class="tag orange">~40 min</span>
+                <span class="tag">Requires: NovaMart DB · C:\Data folder</span>
+                <span class="tag blue">SSMS · BCP · BULK INSERT</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 11</div>
+              <h3>Load the New Product Catalogue into NovaMart</h3>
+              <p>The purchasing team has sent a CSV file with new product data. Load it into NovaMart using two methods: the Import Wizard and BULK INSERT. Then export the Employee table to CSV using BCP, and test a MERGE upsert.</p>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Prepare the Data File and Staging Table</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Create the data directory and CSV file:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">PowerShell</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>New-Item -ItemType Directory -Force -Path 'C:\Data'
+
+$csv = @"
+ProductID,ProductName,Category,Price,Stock
+1,Laptop Pro 15,Electronics,15000000,50
+2,Wireless Mouse,Peripherals,350000,200
+3,USB Hub 7-Port,Peripherals,175000,300
+4,Monitor 24in,Electronics,3200000,80
+5,Keyboard Mechanical,Peripherals,850000,150
+"@
+$csv | Set-Content -Path 'C:\Data\products.csv' -Encoding UTF8</code></pre></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Create the staging table in NovaMart:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+CREATE TABLE dbo.ProductImport (
+  ProductID   INT           NOT NULL,
+  ProductName NVARCHAR(100) NOT NULL,
+  Category    NVARCHAR(50)  NULL,
+  Price       DECIMAL(15,2) NOT NULL,
+  Stock       INT           NOT NULL,
+  CONSTRAINT PK_ProductImport PRIMARY KEY (ProductID)
+);
+GO</code></pre></div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Import via BULK INSERT</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>BULK INSERT dbo.ProductImport
+FROM 'C:\Data\products.csv'
+WITH (
+  FIRSTROW        = 2,
+  FIELDTERMINATOR = ',',
+  ROWTERMINATOR   = '\n',
+  TABLOCK,
+  ERRORFILE       = 'C:\Data\products_errors.txt'
+);
+GO
+
+SELECT COUNT(*) AS ImportedRows FROM dbo.ProductImport;
+SELECT * FROM dbo.ProductImport;</code></pre></div>
+                  <div class="expected">ImportedRows = 5. All five products appear in the result set.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Export Employee Table via BCP</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Open a Command Prompt (not PowerShell) and run:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">Command Prompt</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>bcp NovaMart.dbo.Employee out "C:\Data\employee_export.csv" -S localhost -T -c -t "," -r "\n"</code></pre></div>
+                  <div class="expected">BCP reports: N rows copied. File C:\Data\employee_export.csv created. Open it in Notepad to verify columns and rows.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — Test Import via Wizard (Optional)</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>In SSMS, right-click the NovaMart database → <strong>Tasks → Import Data…</strong>. Select <strong>Flat File Source</strong>, browse to <code>C:\Data\products.csv</code>, configure the destination as <strong>SQL Server Native Client → NovaMart → new table dbo.ProductWizard</strong>, and complete the wizard.</p>
+                  <div class="expected">Wizard reports all rows transferred. <code>SELECT * FROM dbo.ProductWizard</code> returns 5 rows.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part E — Bonus: MERGE Upsert</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Create a Product target table and upsert from ProductImport:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- Create target table
+SELECT * INTO dbo.Product FROM dbo.ProductImport WHERE 1 = 0;
+GO
+
+-- Insert initial rows (Products 1, 2, 3 with old prices)
+INSERT INTO dbo.Product VALUES
+  (1, 'Laptop Pro 15', 'Electronics', 14000000, 40),
+  (2, 'Wireless Mouse', 'Peripherals',  300000, 180),
+  (3, 'USB Hub 7-Port', 'Peripherals',  150000, 250);
+GO
+
+-- Merge: update existing, insert new
+MERGE dbo.Product AS target
+USING dbo.ProductImport AS source
+  ON (target.ProductID = source.ProductID)
+WHEN MATCHED THEN
+  UPDATE SET
+    target.ProductName = source.ProductName,
+    target.Price       = source.Price,
+    target.Stock       = source.Stock
+WHEN NOT MATCHED BY TARGET THEN
+  INSERT (ProductID, ProductName, Category, Price, Stock)
+  VALUES (source.ProductID, source.ProductName, source.Category,
+          source.Price, source.Stock);
+GO
+
+-- Verify: Products 1-3 should have updated prices, 4-5 should be new
+SELECT * FROM dbo.Product ORDER BY ProductID;</code></pre></div>
+                  <div class="expected">Product 1 price is 15000000 (updated). Products 4 and 5 exist (inserted). All 5 rows present.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span>C:\Data\products.csv created with 5 product rows</li>
+              <li><span class="check-box"></span>dbo.ProductImport table created in NovaMart</li>
+              <li><span class="check-box"></span>BULK INSERT imported 5 rows successfully</li>
+              <li><span class="check-box"></span>BCP exported Employee table to C:\Data\employee_export.csv</li>
+              <li><span class="check-box"></span>(Bonus) MERGE updated existing products and inserted new ones</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>BULK INSERT fails — cannot bulk load because the file could not be opened</td><td>Path does not exist or SQL Server service account lacks read permission on C:\Data</td><td>Create the directory; grant read permission on C:\Data to the SQL Server service account (visible in Configuration Manager → right-click SQL Server service → Properties → Log On tab)</td></tr>
+                  <tr><td>BULK INSERT imports 0 rows</td><td>ROWTERMINATOR mismatch — file has Windows CRLF endings but you specified \n</td><td>Change to <code>ROWTERMINATOR = '\r\n'</code> or open the CSV in Notepad++ to confirm line endings</td></tr>
+                  <tr><td>BCP reports "Login failed"</td><td>-T uses Windows auth — your Windows account may not have access to NovaMart</td><td>Use <code>-U sa -P yourpassword</code> instead of -T, or ensure your Windows account has a server login</td></tr>
+                  <tr><td>MERGE syntax error</td><td>Missing semicolon at end of MERGE statement</td><td>Ensure the MERGE statement ends with a semicolon before GO</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Course wrap-up -->
+        <div class="callout success" style="margin-top:40px">
+          <div class="callout-icon">✓</div>
+          <div class="callout-body">
+            <strong>Course Complete — Well Done!</strong>
+            <p>You have completed the NovaMart SQL Server Administration training. Over two days you covered:</p>
+            <ul style="margin:8px 0 0 16px">
+              <li><strong>Day 1:</strong> SQL Server architecture, installation, database management, table design, and security</li>
+              <li><strong>Day 2:</strong> Backup and restore, database maintenance, SQL Agent automation, monitoring and performance, troubleshooting, and data import/export</li>
+            </ul>
+            <p style="margin-top:8px">Return to the <a href="index.html">Course Overview</a> for a summary of all modules and next steps.</p>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-10.html" style="background:var(--surface-2);color:var(--text-2);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--border)">← Module 10</a>
+          <a href="index.html" style="background:var(--accent);color:#fff;padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none">Back to Course Overview →</a>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#wizard">11.1 Import/Export Wizard</a></li>
+          <li><a href="#bulk-insert">11.2 BULK INSERT</a></li>
+          <li><a href="#bcp">11.3 BCP Utility</a></li>
+          <li><a href="#etl">11.4 ETL Concepts</a></li>
+          <li><a href="#merge">11.5 MERGE Statement</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 11</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>

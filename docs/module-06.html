@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M06: Backup &amp; Restore — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="module-06.html" class="nav-item active">M06 Backup &amp; Restore <span class="nav-badge">120m</span></a>
+      <a href="module-07.html" class="nav-item">M07 DB Maintenance <span class="nav-badge">90m</span></a>
+      <a href="module-08.html" class="nav-item">M08 SQL Agent <span class="nav-badge">90m</span></a>
+      <a href="module-09.html" class="nav-item">M09 Monitoring <span class="nav-badge">90m</span></a>
+      <a href="module-10.html" class="nav-item">M10 Troubleshooting <span class="nav-badge">60m</span></a>
+      <a href="module-11.html" class="nav-item">M11 Import &amp; Export <span class="nav-badge">60m</span></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 2 › <span>Module 06</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 2 · Morning · 120 min</span>
+          <h1><span class="module-num">Module 06:</span> Backup &amp; Restore</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 06</span>
+            <span class="tag">Recovery Models · BACKUP · RESTORE</span>
+            <span class="tag blue">NovaMart Production</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Explain the difference between Simple and Full recovery models</li>
+            <li>Perform a full database backup using SSMS and T-SQL</li>
+            <li>Perform a differential backup to capture incremental changes</li>
+            <li>Back up and restore the transaction log to a point in time</li>
+            <li>Restore NovaMart from a backup file and verify data integrity</li>
+          </ul>
+        </div>
+
+        <!-- 6.1 Recovery Models -->
+        <h2 id="recovery-models">6.1 Recovery Models</h2>
+        <p>The recovery model controls how much of the transaction log SQL Server retains — and therefore, what you can restore. Set it deliberately before your first backup.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Model</th><th>Log Retention</th><th>Point-in-Time Restore?</th><th>Use Case</th></tr></thead>
+            <tbody>
+              <tr><td><strong>SIMPLE</strong></td><td>Truncated at each checkpoint automatically</td><td>No</td><td>Development, test, non-critical databases</td></tr>
+              <tr><td><strong>FULL</strong></td><td>Kept until a log backup is taken</td><td>Yes</td><td>Production — required for NovaMart</td></tr>
+              <tr><td><strong>BULK-LOGGED</strong></td><td>Minimally logs bulk operations</td><td>No (during bulk period)</td><td>Temporary switch during large data loads</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>SIMPLE Recovery = No Log Backups</strong>
+            <p>In SIMPLE recovery mode, SQL Server truncates the log automatically. You cannot take log backups. Maximum potential data loss equals all changes since the last full or differential backup. Never use SIMPLE on a production database that requires point-in-time recovery.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Set Recovery Model</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Set NovaMart to FULL recovery (required for production)
+ALTER DATABASE NovaMart SET RECOVERY FULL;
+GO
+
+-- Verify the current recovery model
+SELECT name, recovery_model_desc
+FROM   sys.databases
+WHERE  name = 'NovaMart';</code></pre>
+        </div>
+
+        <!-- 6.2 Backup Types -->
+        <h2 id="backup-types">6.2 Backup Types</h2>
+        <p>SQL Server supports three standard backup types. Use a combination to balance storage cost against recovery time and maximum data loss.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Type</th><th>What It Captures</th><th>Restore Dependency</th><th>Typical Frequency</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Full</strong></td><td>Entire database — data pages plus enough log to make it consistent</td><td>Self-contained — can restore from this file alone</td><td>Weekly or nightly</td></tr>
+              <tr><td><strong>Differential</strong></td><td>All pages changed since the last <em>full</em> backup</td><td>Requires the last full backup first</td><td>Nightly or every few hours</td></tr>
+              <tr><td><strong>Transaction Log</strong></td><td>Active portion of the transaction log</td><td>Requires full + any differentials first</td><td>Every 15–60 min in production</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>NovaMart Backup Strategy</strong>
+            <p>Full backup Sunday 02:00 → Differential Mon–Sat 00:00 → Transaction log every 30 minutes. This limits maximum data loss to 30 minutes and keeps daily backup files small.</p>
+          </div>
+        </div>
+
+        <!-- 6.3 Performing Backups -->
+        <h2 id="performing-backups">6.3 Performing Backups via T-SQL</h2>
+        <p>T-SQL backup commands are scriptable, schedulable, and the foundation for SQL Agent jobs. Master these before relying on the GUI.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Full Backup</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Full backup
+BACKUP DATABASE NovaMart
+TO DISK = 'C:\SQLBackup\NovaMart_Full.bak'
+WITH FORMAT,               -- overwrite and initialise the media
+     INIT,                 -- overwrite existing backup sets on the file
+     NAME = 'NovaMart Full Backup',
+     COMPRESSION,          -- reduces file size — recommended
+     STATS = 10;           -- print progress every 10%
+GO</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Differential Backup</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Differential backup (captures changes since last FULL)
+BACKUP DATABASE NovaMart
+TO DISK = 'C:\SQLBackup\NovaMart_Diff.bak'
+WITH DIFFERENTIAL,
+     INIT,
+     NAME = 'NovaMart Differential Backup',
+     COMPRESSION,
+     STATS = 10;
+GO</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Transaction Log Backup</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Transaction log backup (only valid in FULL or BULK-LOGGED recovery)
+BACKUP LOG NovaMart
+TO DISK = 'C:\SQLBackup\NovaMart_Log.bak'
+WITH INIT,
+     NAME = 'NovaMart Log Backup',
+     STATS = 10;
+GO
+
+-- Verify a backup file without restoring
+RESTORE VERIFYONLY FROM DISK = 'C:\SQLBackup\NovaMart_Full.bak';
+GO</code></pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Option</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>FORMAT, INIT</code></td><td>Overwrite existing backup file. Remove <code>INIT</code> to append to the same file (multiple backup sets).</td></tr>
+              <tr><td><code>COMPRESSION</code></td><td>Reduces backup file size significantly — recommended unless storage is fast SSD.</td></tr>
+              <tr><td><code>STATS = 10</code></td><td>Print a progress message every 10% — useful for large databases.</td></tr>
+              <tr><td><code>DIFFERENTIAL</code></td><td>Captures only pages changed since the last full backup — not since last diff.</td></tr>
+              <tr><td><code>BACKUP LOG</code></td><td>Only valid when recovery model is FULL or BULK-LOGGED.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 6.4 Restoring -->
+        <h2 id="restoring">6.4 Restoring a Database</h2>
+        <p>A backup is worthless unless you have practised the restore. Restoring in SQL Server follows a strict sequence: full → differential → log backups, each with <code>NORECOVERY</code> except the last.</p>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>NORECOVERY vs RECOVERY</strong>
+            <p><code>WITH NORECOVERY</code> leaves the database in a <em>Restoring</em> state so you can apply more backups. <code>WITH RECOVERY</code> brings the database online — use it <strong>only on the final step</strong>. Applying RECOVERY too early means you cannot apply further log backups.</p>
+          </div>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Full Restore Sequence</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Step 1: Restore full backup — leave in restoring state
+RESTORE DATABASE NovaMart
+FROM DISK = 'C:\SQLBackup\NovaMart_Full.bak'
+WITH NORECOVERY,
+     STATS = 10;
+GO
+
+-- Step 2: Apply differential backup
+RESTORE DATABASE NovaMart
+FROM DISK = 'C:\SQLBackup\NovaMart_Diff.bak'
+WITH NORECOVERY,
+     STATS = 10;
+GO
+
+-- Step 3: Apply log backup — bring database online
+RESTORE LOG NovaMart
+FROM DISK = 'C:\SQLBackup\NovaMart_Log.bak'
+WITH RECOVERY;
+GO</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Point-in-Time Restore</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Restore to a specific moment (FULL recovery model required)
+RESTORE LOG NovaMart
+FROM DISK = 'C:\SQLBackup\NovaMart_Log.bak'
+WITH RECOVERY,
+     STOPAT = '2026-05-14T09:30:00';
+GO
+
+-- Inspect what backup sets are inside a file before restoring
+RESTORE HEADERONLY FROM DISK = 'C:\SQLBackup\NovaMart_Full.bak';
+GO
+
+-- Restore to a different path (relocate files)
+RESTORE DATABASE NovaMart
+FROM DISK = 'C:\SQLBackup\NovaMart_Full.bak'
+WITH RECOVERY,
+     MOVE 'NovaMart'     TO 'D:\SQLData\NovaMart.mdf',
+     MOVE 'NovaMart_log' TO 'E:\SQLLog\NovaMart.ldf',
+     REPLACE;
+GO</code></pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Option</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr><td><code>NORECOVERY</code></td><td>Leaves DB in restoring state — required when more backups follow.</td></tr>
+              <tr><td><code>RECOVERY</code></td><td>Brings database online — only on the FINAL restore step.</td></tr>
+              <tr><td><code>STOPAT</code></td><td>Point-in-time recovery — FULL recovery model only.</td></tr>
+              <tr><td><code>REPLACE</code></td><td>Overwrite an existing database with the same name.</td></tr>
+              <tr><td><code>MOVE</code></td><td>Redirect data/log files to different paths during restore.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 6.5 Backup Verification -->
+        <h2 id="verify">6.5 Backup Verification</h2>
+        <p>Always verify backups after creation. <code>RESTORE VERIFYONLY</code> checks that the backup set is complete and readable without actually restoring data.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Verify and Inspect Backups</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Verify backup file integrity
+RESTORE VERIFYONLY FROM DISK = 'C:\SQLBackup\NovaMart_Full.bak';
+GO
+
+-- View backup history for NovaMart
+SELECT bs.database_name, bs.type,
+       bs.backup_start_date, bs.backup_finish_date,
+       CAST(bs.backup_size / 1048576.0 AS DECIMAL(10,1)) AS SizeMB,
+       bmf.physical_device_name
+FROM   msdb.dbo.backupset bs
+JOIN   msdb.dbo.backupmediafamily bmf
+       ON bs.media_set_id = bmf.media_set_id
+WHERE  bs.database_name = 'NovaMart'
+ORDER  BY bs.backup_start_date DESC;</code></pre>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>NovaMart is in SIMPLE recovery. Can you take a transaction log backup?</li>
+            <li>You restored a full backup <code>WITH NORECOVERY</code> and then applied the log backup <code>WITH RECOVERY</code>. Can you apply another log backup now?</li>
+            <li>What does <code>RESTORE VERIFYONLY</code> confirm?</li>
+            <li>How often should you run log backups on a production database?</li>
+            <li>What SQL Server option limits the maximum data loss during an outage when using FULL recovery?</li>
+          </ol>
+          <button class="answers-toggle"><span class="toggle-icon">▼</span> Show Answers</button>
+          <div class="answers-panel">
+            <ol>
+              <li><strong>No.</strong> Transaction log backups require FULL or BULK-LOGGED recovery model. In SIMPLE, the log is truncated automatically and cannot be backed up.</li>
+              <li><strong>No.</strong> Once you apply <code>WITH RECOVERY</code>, the database comes online and the restore chain is broken. You cannot apply any further log backups.</li>
+              <li><code>RESTORE VERIFYONLY</code> confirms the backup set is complete and readable, but does not restore any data. It validates the media, not the actual row data.</li>
+              <li>Every 15–60 minutes in a production environment, depending on the acceptable RPO (Recovery Point Objective).</li>
+              <li>The frequency of transaction log backups. The maximum data loss equals the time between the last successful log backup and the failure.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">06</div>
+            <div>
+              <div class="lab-title">Back Up and Restore the NovaMart Database</div>
+              <div class="lab-meta">
+                <span class="tag orange">~60 min</span>
+                <span class="tag">Requires: NovaMart DB · C:\SQLBackup folder</span>
+                <span class="tag blue">BACKUP · RESTORE</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 06</div>
+              <h3>Protect NovaMart Before the Weekend</h3>
+              <p>It is Friday afternoon. Budi needs to confirm that NovaMart has a working backup-and-restore procedure before end of business. Your tasks:</p>
+              <ul style="margin:8px 0 0 16px">
+                <li>Set the recovery model to FULL</li>
+                <li>Take a full backup, add some data, take a differential</li>
+                <li>Simulate a failure by dropping a table</li>
+                <li>Restore from backup and confirm all data returns</li>
+              </ul>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Prepare</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Create the backup directory if it does not exist:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">PowerShell</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>New-Item -ItemType Directory -Force -Path 'C:\SQLBackup'</code></pre></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Ensure NovaMart is in FULL recovery:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>ALTER DATABASE NovaMart SET RECOVERY FULL;
+GO
+SELECT name, recovery_model_desc FROM sys.databases WHERE name = 'NovaMart';</code></pre></div>
+                  <div class="expected">recovery_model_desc shows FULL.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Full Backup</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>BACKUP DATABASE NovaMart
+TO DISK = 'C:\SQLBackup\NovaMart_Full.bak'
+WITH FORMAT, INIT,
+     NAME = 'NovaMart Full Backup',
+     COMPRESSION, STATS = 10;
+GO</code></pre></div>
+                  <div class="expected">Processed N pages… BACKUP DATABASE successfully processed. File NovaMart_Full.bak appears in C:\SQLBackup.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Verify the backup:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>RESTORE VERIFYONLY FROM DISK = 'C:\SQLBackup\NovaMart_Full.bak';</code></pre></div>
+                  <div class="expected">The backup set on file 1 is valid.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Make a Change, Then Differential Backup</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Insert a test row to simulate activity after the full backup:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+INSERT INTO dbo.Department (DeptName, Location)
+VALUES ('Logistics', 'Warehouse B');
+GO
+SELECT * FROM dbo.Department;</code></pre></div>
+                </div></li>
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>BACKUP DATABASE NovaMart
+TO DISK = 'C:\SQLBackup\NovaMart_Diff.bak'
+WITH DIFFERENTIAL, INIT,
+     NAME = 'NovaMart Differential Backup',
+     COMPRESSION, STATS = 10;
+GO</code></pre></div>
+                  <div class="expected">BACKUP DATABASE WITH DIFFERENTIAL successfully processed.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — Simulate Failure</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Drop the Department table to simulate accidental data loss:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+DROP TABLE dbo.Department;
+GO
+-- Confirm it is gone
+SELECT name FROM sys.tables WHERE name = 'Department';</code></pre></div>
+                  <div class="expected">No rows returned — table is gone.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part E — Restore from Backup</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Kick all connections out of NovaMart, then restore full backup:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE master;
+GO
+ALTER DATABASE NovaMart SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+GO
+RESTORE DATABASE NovaMart
+FROM DISK = 'C:\SQLBackup\NovaMart_Full.bak'
+WITH NORECOVERY, REPLACE, STATS = 10;
+GO</code></pre></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Apply the differential backup, then bring online:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>RESTORE DATABASE NovaMart
+FROM DISK = 'C:\SQLBackup\NovaMart_Diff.bak'
+WITH RECOVERY, STATS = 10;
+GO
+ALTER DATABASE NovaMart SET MULTI_USER;
+GO</code></pre></div>
+                  <div class="expected">RESTORE DATABASE successfully processed. NovaMart is online.</div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Confirm the Department table and the Logistics row are back:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+SELECT * FROM dbo.Department;</code></pre></div>
+                  <div class="expected">Department table exists and includes the 'Logistics' row added before the differential backup.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span>NovaMart recovery model set to FULL</li>
+              <li><span class="check-box"></span>Full backup created and verified with RESTORE VERIFYONLY</li>
+              <li><span class="check-box"></span>Differential backup created after inserting Logistics row</li>
+              <li><span class="check-box"></span>Department table successfully dropped (failure simulated)</li>
+              <li><span class="check-box"></span>Full + differential restore completed without error</li>
+              <li><span class="check-box"></span>Department table and Logistics row present after restore</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>BACKUP DATABASE fails — cannot open file</td><td>C:\SQLBackup directory does not exist or SQL Server service account lacks write permission</td><td>Create the directory and grant write rights to the SQL Server service account (check in Configuration Manager)</td></tr>
+                  <tr><td>RESTORE fails — database in use</td><td>Active connections exist</td><td>Run <code>ALTER DATABASE NovaMart SET SINGLE_USER WITH ROLLBACK IMMEDIATE</code> before restoring</td></tr>
+                  <tr><td>Cannot apply differential — "The log or differential backup cannot be restored"</td><td>Differential is from a different full backup chain</td><td>Restore the correct full backup first; the differential must be newer than the full backup you restored</td></tr>
+                  <tr><td>BACKUP LOG fails — "not permitted under the simple recovery model"</td><td>Recovery model is SIMPLE</td><td>Run <code>ALTER DATABASE NovaMart SET RECOVERY FULL</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-05.html" style="background:var(--surface-2);color:var(--text-2);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--border)">← Module 05</a>
+          <a href="module-07.html" style="background:var(--accent);color:#fff;padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none">Module 07 →</a>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#recovery-models">6.1 Recovery Models</a></li>
+          <li><a href="#backup-types">6.2 Backup Types</a></li>
+          <li><a href="#performing-backups">6.3 Performing Backups</a></li>
+          <li><a href="#restoring">6.4 Restoring a Database</a></li>
+          <li><a href="#verify">6.5 Backup Verification</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 06</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>

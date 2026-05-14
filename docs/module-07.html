@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M07: Database Maintenance — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="module-06.html" class="nav-item">M06 Backup &amp; Restore <span class="nav-badge">120m</span></a>
+      <a href="module-07.html" class="nav-item active">M07 DB Maintenance <span class="nav-badge">90m</span></a>
+      <a href="module-08.html" class="nav-item">M08 SQL Agent <span class="nav-badge">90m</span></a>
+      <a href="module-09.html" class="nav-item">M09 Monitoring <span class="nav-badge">90m</span></a>
+      <a href="module-10.html" class="nav-item">M10 Troubleshooting <span class="nav-badge">60m</span></a>
+      <a href="module-11.html" class="nav-item">M11 Import &amp; Export <span class="nav-badge">60m</span></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 2 › <span>Module 07</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 2 · Morning · 90 min</span>
+          <h1><span class="module-num">Module 07:</span> Database Maintenance</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 07</span>
+            <span class="tag">Index Rebuild · Statistics · DBCC CHECKDB</span>
+            <span class="tag blue">NovaMart Health</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Explain why index fragmentation degrades query performance</li>
+            <li>Decide when to REBUILD versus REORGANIZE based on fragmentation level</li>
+            <li>Update column statistics so the query optimizer has accurate data</li>
+            <li>Run DBCC CHECKDB to detect and report database consistency errors</li>
+            <li>Build a weekly maintenance routine for the NovaMart database</li>
+          </ul>
+        </div>
+
+        <!-- 7.1 Index Fragmentation -->
+        <h2 id="fragmentation">7.1 Index Fragmentation</h2>
+        <p>Fragmentation occurs naturally as INSERT, UPDATE, and DELETE operations scatter data across index pages. Over time, SQL Server must read more pages to satisfy the same query, increasing I/O and reducing throughput.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fragmentation Level</th><th>Recommended Action</th></tr></thead>
+            <tbody>
+              <tr><td>&lt; 5%</td><td>Skip — no action needed</td></tr>
+              <tr><td>5% – 30%</td><td><code>ALTER INDEX … REORGANIZE</code></td></tr>
+              <tr><td>&gt; 30%</td><td><code>ALTER INDEX … REBUILD</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Detect Fragmentation</span><button class="copy-btn">COPY</button></div>
+          <pre><code>SELECT
+  OBJECT_NAME(ips.object_id)          AS TableName,
+  i.name                              AS IndexName,
+  ips.avg_fragmentation_in_percent,
+  ips.page_count
+FROM sys.dm_db_index_physical_stats
+     (DB_ID(), NULL, NULL, NULL, 'LIMITED') ips
+JOIN sys.indexes i
+  ON ips.object_id = i.object_id
+ AND ips.index_id  = i.index_id
+WHERE ips.avg_fragmentation_in_percent > 5
+  AND ips.page_count > 100
+ORDER BY ips.avg_fragmentation_in_percent DESC;</code></pre>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>page_count filter</strong>
+            <p>Indexes with fewer than 100 pages (800 KB) rarely benefit from maintenance — the I/O savings are negligible. Always filter by <code>page_count &gt; 100</code> to avoid wasting maintenance window time on tiny indexes.</p>
+          </div>
+        </div>
+
+        <!-- 7.2 REBUILD vs REORGANIZE -->
+        <h2 id="rebuild-reorg">7.2 REBUILD vs REORGANIZE</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th></th><th>REORGANIZE</th><th>REBUILD</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Fragmentation range</strong></td><td>5% – 30%</td><td>&gt; 30%</td></tr>
+              <tr><td><strong>How it works</strong></td><td>Defragments leaf-level pages in-place, compacts the existing structure</td><td>Drops and recreates the index from scratch</td></tr>
+              <tr><td><strong>Locking</strong></td><td>Online — no table lock (all editions)</td><td>Offline by default (table locked); Enterprise supports <code>ONLINE = ON</code></td></tr>
+              <tr><td><strong>Statistics</strong></td><td>NOT updated automatically</td><td>Updated automatically (equivalent to FULLSCAN)</td></tr>
+              <tr><td><strong>Speed</strong></td><td>Slower for heavy fragmentation</td><td>Fastest, most thorough result</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — REORGANIZE (5–30%)</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Reorganize all indexes on a table
+ALTER INDEX ALL ON dbo.Employee REORGANIZE;
+GO
+
+-- Reorganize a specific index
+ALTER INDEX IX_Employee_DeptID ON dbo.Employee REORGANIZE;
+GO</code></pre>
+        </div>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — REBUILD (&gt;30%)</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Rebuild all indexes on a table (offline — table is locked)
+ALTER INDEX ALL ON dbo.Employee REBUILD WITH (ONLINE = OFF);
+GO
+
+-- Rebuild a specific index (Enterprise: ONLINE = ON avoids locking)
+ALTER INDEX PK_Employee ON dbo.Employee REBUILD WITH (ONLINE = OFF);
+GO</code></pre>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>Production Impact</strong>
+            <p>REBUILD with <code>ONLINE = OFF</code> takes a Schema Modification (Sch-M) lock on the table, blocking all reads and writes for the duration. Schedule rebuilds during low-traffic windows. If you are on Standard edition and need zero downtime, use REORGANIZE instead even for high-fragmentation indexes.</p>
+          </div>
+        </div>
+
+        <!-- 7.3 Update Statistics -->
+        <h2 id="statistics">7.3 Update Statistics</h2>
+        <p>Statistics are histograms that tell the query optimizer how data is distributed across columns. Stale statistics lead to bad execution plans — often the root cause of "suddenly slow" queries after a data load.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Update Statistics</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Update statistics for one table (full scan — most accurate)
+UPDATE STATISTICS dbo.Employee WITH FULLSCAN;
+GO
+
+-- Update all statistics in the current database
+EXEC sp_updatestats;
+GO
+
+-- Check when statistics were last updated
+SELECT
+  s.name,
+  STATS_DATE(s.object_id, s.stats_id) AS LastUpdated
+FROM sys.stats s
+WHERE OBJECT_NAME(s.object_id) = 'Employee'
+ORDER BY LastUpdated DESC;</code></pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Method</th><th>Coverage</th><th>Notes</th></tr></thead>
+            <tbody>
+              <tr><td><code>WITH FULLSCAN</code></td><td>100% of rows scanned</td><td>Most accurate — recommended for maintenance jobs</td></tr>
+              <tr><td><code>WITH SAMPLE n PERCENT</code></td><td>n% of rows</td><td>Faster for very large tables; slightly less accurate</td></tr>
+              <tr><td><code>sp_updatestats</code></td><td>All tables in DB</td><td>Only updates stats that have changed since last update — quick pass</td></tr>
+              <tr><td>Auto-update statistics</td><td>Automatic</td><td>Triggers when ~20% of rows change — usually sufficient between maintenance runs</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 7.4 DBCC CHECKDB -->
+        <h2 id="checkdb">7.4 DBCC CHECKDB</h2>
+        <p>DBCC CHECKDB validates the physical and logical integrity of every object in the database. Run it regularly — it is your early warning system for storage failures and corruption.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — DBCC CHECKDB</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- Full integrity check — checks allocation, structure, and rows
+DBCC CHECKDB (NovaMart) WITH NO_INFOMSGS;
+GO
+
+-- Fast check — structure and allocation only (no row-level)
+DBCC CHECKDB (NovaMart) WITH PHYSICAL_ONLY, NO_INFOMSGS;
+GO
+
+-- Check a single table
+DBCC CHECKTABLE ('dbo.Employee');
+GO</code></pre>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>What to look for</strong>
+            <p>A clean database returns: <em>"CHECKDB found 0 allocation errors and 0 consistency errors in database 'NovaMart'."</em> Any non-zero error count requires immediate investigation. Do NOT restart the SQL Server service if CHECKDB reports errors — this can make recovery harder.</p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Option</th><th>Effect</th><th>When to Use</th></tr></thead>
+            <tbody>
+              <tr><td><code>NO_INFOMSGS</code></td><td>Suppresses informational messages — only shows errors</td><td>Always — keeps output clean</td></tr>
+              <tr><td><code>PHYSICAL_ONLY</code></td><td>Checks page structure and allocation maps, skips logical row checks</td><td>Frequent runs (daily/weekly) — much faster</td></tr>
+              <tr><td><em>(no options)</em></td><td>Full check including row-level logical consistency</td><td>Weekly or monthly — the definitive check</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 7.5 Weekly Maintenance Schedule -->
+        <h2 id="schedule">7.5 Weekly Maintenance Schedule for NovaMart</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>Task</th><th>Command</th></tr></thead>
+            <tbody>
+              <tr><td>Sunday 02:00</td><td>Full Backup</td><td><code>BACKUP DATABASE NovaMart … WITH FORMAT, COMPRESSION</code></td></tr>
+              <tr><td>Sunday 03:00</td><td>Index Rebuild</td><td><code>ALTER INDEX ALL ON &lt;each table&gt; REBUILD</code></td></tr>
+              <tr><td>Sunday 04:00</td><td>DBCC CHECKDB</td><td><code>DBCC CHECKDB (NovaMart) WITH NO_INFOMSGS</code></td></tr>
+              <tr><td>Mon–Sat 00:00</td><td>Differential Backup</td><td><code>BACKUP DATABASE NovaMart … WITH DIFFERENTIAL, COMPRESSION</code></td></tr>
+              <tr><td>Mon–Sat 01:00</td><td>Update Statistics</td><td><code>EXEC sp_updatestats</code></td></tr>
+              <tr><td>Every 30 min</td><td>Log Backup</td><td><code>BACKUP LOG NovaMart … WITH INIT</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>An index shows 12% fragmentation and 500 pages. Should you REBUILD or REORGANIZE?</li>
+            <li>After running <code>ALTER INDEX ALL ON dbo.Employee REORGANIZE</code>, are the statistics automatically updated?</li>
+            <li>What does <code>WITH NO_INFOMSGS</code> do in a DBCC CHECKDB command?</li>
+            <li>When is the best time to run index REBUILD on a production system?</li>
+            <li>What does <code>sp_updatestats</code> skip that <code>UPDATE STATISTICS … WITH FULLSCAN</code> does not?</li>
+          </ol>
+          <button class="answers-toggle"><span class="toggle-icon">▼</span> Show Answers</button>
+          <div class="answers-panel">
+            <ol>
+              <li><strong>REORGANIZE</strong> — 12% falls in the 5–30% range. REORGANIZE is the appropriate choice and keeps the table online.</li>
+              <li><strong>No.</strong> REORGANIZE does NOT update statistics automatically. You must run <code>UPDATE STATISTICS</code> separately after REORGANIZE.</li>
+              <li>It suppresses informational messages — only errors and warnings are shown. This keeps the output clean and easy to scan for problems.</li>
+              <li>During a low-traffic maintenance window — typically overnight on weekends. REBUILD with <code>ONLINE = OFF</code> locks the table, blocking reads and writes.</li>
+              <li><code>sp_updatestats</code> skips statistics that have not changed since the last update (uses a change-count threshold). <code>WITH FULLSCAN</code> always rescans all rows regardless of changes.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">07</div>
+            <div>
+              <div class="lab-title">Maintain the NovaMart Database</div>
+              <div class="lab-meta">
+                <span class="tag orange">~45 min</span>
+                <span class="tag">Requires: NovaMart DB</span>
+                <span class="tag blue">SSMS</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 07</div>
+              <h3>Sunday Maintenance Window for NovaMart</h3>
+              <p>It is Sunday morning. Run the full maintenance routine on NovaMart — detect fragmentation, rebuild or reorganise indexes, refresh statistics, and confirm database integrity with DBCC CHECKDB.</p>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Detect Fragmentation</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE NovaMart;
+GO
+SELECT
+  OBJECT_NAME(ips.object_id) AS TableName,
+  i.name                     AS IndexName,
+  ips.avg_fragmentation_in_percent,
+  ips.page_count
+FROM sys.dm_db_index_physical_stats
+     (DB_ID(), NULL, NULL, NULL, 'LIMITED') ips
+JOIN sys.indexes i
+  ON ips.object_id = i.object_id
+ AND ips.index_id  = i.index_id
+WHERE ips.avg_fragmentation_in_percent > 5
+  AND ips.page_count > 100
+ORDER BY ips.avg_fragmentation_in_percent DESC;</code></pre></div>
+                  <div class="expected">Result set shows fragmentation percentages. On a small training database, fragmentation may be near 0% — this is normal.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Run Index Maintenance</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Rebuild all indexes on each main table:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>ALTER INDEX ALL ON dbo.Employee   REBUILD WITH (ONLINE = OFF);
+ALTER INDEX ALL ON dbo.Department REBUILD WITH (ONLINE = OFF);
+GO</code></pre></div>
+                  <div class="expected">Commands complete with no errors.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Update Statistics</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>-- Full scan for critical tables
+UPDATE STATISTICS dbo.Employee WITH FULLSCAN;
+UPDATE STATISTICS dbo.Department WITH FULLSCAN;
+GO
+
+-- Update remaining tables
+EXEC sp_updatestats;
+GO</code></pre></div>
+                  <div class="expected">sp_updatestats reports "Updated statistics for ..." or "Statistics for table ... are already up-to-date."</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — DBCC CHECKDB</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>DBCC CHECKDB (NovaMart) WITH NO_INFOMSGS;
+GO</code></pre></div>
+                  <div class="expected">CHECKDB found 0 allocation errors and 0 consistency errors in database 'NovaMart'.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span>Fragmentation query executed against sys.dm_db_index_physical_stats</li>
+              <li><span class="check-box"></span>ALTER INDEX REBUILD completed on Employee and Department tables</li>
+              <li><span class="check-box"></span>UPDATE STATISTICS with FULLSCAN completed</li>
+              <li><span class="check-box"></span>sp_updatestats executed successfully</li>
+              <li><span class="check-box"></span>DBCC CHECKDB reports 0 allocation errors and 0 consistency errors</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>ALTER INDEX REBUILD fails — permission denied</td><td>Connected login does not have ALTER TABLE permission</td><td>Connect as sysadmin or grant <code>ALTER</code> on the table to the login</td></tr>
+                  <tr><td>DBCC CHECKDB reports allocation errors</td><td>Storage-level corruption or disk failure</td><td>Do NOT restart SQL Server. Take a backup immediately. Consult Microsoft documentation for DBCC repair options. Escalate to senior DBA.</td></tr>
+                  <tr><td>sys.dm_db_index_physical_stats returns no rows</td><td>All indexes have &lt; 5% fragmentation or &lt; 100 pages</td><td>Expected on a small training database. Remove the WHERE filters to see all indexes.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-06.html" style="background:var(--surface-2);color:var(--text-2);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--border)">← Module 06</a>
+          <a href="module-08.html" style="background:var(--accent);color:#fff;padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none">Module 08 →</a>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#fragmentation">7.1 Index Fragmentation</a></li>
+          <li><a href="#rebuild-reorg">7.2 REBUILD vs REORGANIZE</a></li>
+          <li><a href="#statistics">7.3 Update Statistics</a></li>
+          <li><a href="#checkdb">7.4 DBCC CHECKDB</a></li>
+          <li><a href="#schedule">7.5 Maintenance Schedule</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 07</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>

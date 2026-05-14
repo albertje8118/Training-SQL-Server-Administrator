@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M08: SQL Server Agent &amp; Automation — NovaMart DBA Training</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="reading-progress"></div>
+<div class="sidebar-overlay"></div>
+
+<div class="layout">
+  <aside class="sidebar">
+    <a href="index.html" class="sidebar-brand">
+      <div class="brand-logo">DB</div>
+      <div><div class="brand-title">NovaMart DBA</div><div class="brand-sub">SQL Server Training</div></div>
+    </a>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Start Here</div>
+      <a href="index.html" class="nav-item">Course Overview</a>
+      <a href="scenario.html" class="nav-item">Training Scenario</a>
+      <div class="nav-section">Day 1 — Foundation</div>
+      <a href="module-01.html" class="nav-item">M01 Overview &amp; Architecture <span class="nav-badge">90m</span></a>
+      <a href="module-02.html" class="nav-item">M02 Install &amp; Configure <span class="nav-badge">120m</span></a>
+      <a href="module-03.html" class="nav-item">M03 Database Management <span class="nav-badge">90m</span></a>
+      <a href="module-04.html" class="nav-item">M04 Tables &amp; Data <span class="nav-badge">90m</span></a>
+      <a href="module-05.html" class="nav-item">M05 Security &amp; Users <span class="nav-badge">90m</span></a>
+      <div class="nav-section">Day 2 — Operations</div>
+      <a href="module-06.html" class="nav-item">M06 Backup &amp; Restore <span class="nav-badge">120m</span></a>
+      <a href="module-07.html" class="nav-item">M07 DB Maintenance <span class="nav-badge">90m</span></a>
+      <a href="module-08.html" class="nav-item active">M08 SQL Agent <span class="nav-badge">90m</span></a>
+      <a href="module-09.html" class="nav-item">M09 Monitoring <span class="nav-badge">90m</span></a>
+      <a href="module-10.html" class="nav-item">M10 Troubleshooting <span class="nav-badge">60m</span></a>
+      <a href="module-11.html" class="nav-item">M11 Import &amp; Export <span class="nav-badge">60m</span></a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb">Day 2 › <span>Module 08</span></div>
+      <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    </div>
+
+    <div class="content-wrapper">
+      <article>
+        <header class="page-header">
+          <span class="day-label">Day 2 · Morning · 90 min</span>
+          <h1><span class="module-num">Module 08:</span> SQL Server Agent &amp; Automation</h1>
+          <div class="module-meta">
+            <span class="tag orange">Lab 08</span>
+            <span class="tag">Jobs · Schedules · Alerts · Operators</span>
+            <span class="tag blue">NovaMart Automation</span>
+          </div>
+        </header>
+
+        <div class="objectives">
+          <div class="objectives-title">Learning Objectives</div>
+          <ul>
+            <li>Describe the components of SQL Server Agent and how they interact</li>
+            <li>Create a multi-step SQL Server Agent job using SSMS</li>
+            <li>Schedule a job using a recurring SQL Server Agent schedule</li>
+            <li>Monitor job execution history to confirm success or diagnose failure</li>
+            <li>Script a job using system stored procedures</li>
+          </ul>
+        </div>
+
+        <!-- 8.1 Agent Components -->
+        <h2 id="components">8.1 SQL Server Agent Components</h2>
+        <p>SQL Server Agent is a Windows service (<code>SQLSERVERAGENT</code>) that runs scheduled tasks on behalf of SQL Server. It must be running before any jobs can execute.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Component</th><th>Description</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Job</strong></td><td>A named container of one or more ordered steps to be executed</td></tr>
+              <tr><td><strong>Job Step</strong></td><td>A single executable unit within a job — T-SQL, PowerShell, SSIS, CmdExec, etc.</td></tr>
+              <tr><td><strong>Schedule</strong></td><td>Defines when (recurring, one-time, or on SQL Server startup) a job runs</td></tr>
+              <tr><td><strong>Alert</strong></td><td>Monitors for SQL Server errors, performance conditions, or WMI events and triggers a response</td></tr>
+              <tr><td><strong>Operator</strong></td><td>A named contact (email, pager) that receives notifications on job success, failure, or alert trigger</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout warn">
+          <div class="callout-icon">⚠</div>
+          <div class="callout-body">
+            <strong>Agent Must Be Running</strong>
+            <p>In SSMS, check SQL Server Agent under the Management folder in Object Explorer. If it shows a red stop icon, right-click → Start. To ensure it starts automatically after a server reboot, set the Agent service Startup Type to <em>Automatic</em> in SQL Server Configuration Manager.</p>
+          </div>
+        </div>
+
+        <!-- 8.2 Creating a Job in SSMS -->
+        <h2 id="create-gui">8.2 Creating a Job via SSMS</h2>
+        <p>SSMS provides a graphical job editor. Use it to create and test jobs before scripting them to T-SQL for deployment.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Step</th><th>Action in SSMS</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td>In Object Explorer, expand <strong>SQL Server Agent → Jobs</strong></td></tr>
+              <tr><td>2</td><td>Right-click <strong>Jobs → New Job…</strong></td></tr>
+              <tr><td>3</td><td>On the <strong>General</strong> page, enter a job name (e.g., <em>NovaMart Nightly Backup</em>)</td></tr>
+              <tr><td>4</td><td>On the <strong>Steps</strong> page, click <strong>New</strong> — enter step name, select type T-SQL, choose database, enter command</td></tr>
+              <tr><td>5</td><td>On the <strong>Schedules</strong> page, click <strong>New</strong> — choose frequency, start time, and end date</td></tr>
+              <tr><td>6</td><td>Click <strong>OK</strong> to save — the job appears under the Jobs node</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip">
+          <div class="callout-icon">ℹ</div>
+          <div class="callout-body">
+            <strong>Step On-Failure Action</strong>
+            <p>For each job step, set the <em>On failure action</em> to <em>Quit the job reporting failure</em> unless you intentionally want execution to continue after an error. This ensures job history accurately reflects whether the task succeeded.</p>
+          </div>
+        </div>
+
+        <!-- 8.3 Schedules and History -->
+        <h2 id="schedules">8.3 Schedules and Job History</h2>
+        <p>A schedule can be attached to multiple jobs. After attaching a schedule, verify in Job Activity Monitor that the next run time is set correctly.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Query Job History</span><button class="copy-btn">COPY</button></div>
+          <pre><code>-- View history for all jobs
+SELECT
+  j.name   AS JobName,
+  h.step_name,
+  h.run_date,
+  h.run_time,
+  CASE h.run_status
+    WHEN 0 THEN 'Failed'
+    WHEN 1 THEN 'Succeeded'
+    WHEN 3 THEN 'Cancelled'
+    WHEN 5 THEN 'Unknown'
+  END AS Status,
+  h.message
+FROM msdb.dbo.sysjobhistory h
+JOIN msdb.dbo.sysjobs        j ON h.job_id = j.job_id
+ORDER BY h.run_date DESC, h.run_time DESC;
+
+-- View only failed steps
+SELECT j.name, h.step_name, h.message
+FROM msdb.dbo.sysjobhistory h
+JOIN msdb.dbo.sysjobs j ON h.job_id = j.job_id
+WHERE h.run_status = 0
+ORDER BY h.run_date DESC;</code></pre>
+        </div>
+
+        <!-- 8.4 T-SQL Job Creation -->
+        <h2 id="tsql-job">8.4 Creating a Job via T-SQL</h2>
+        <p>Scripting jobs to T-SQL is essential for version control, deployment across environments, and disaster recovery. SQL Server Agent jobs live in the <code>msdb</code> system database.</p>
+        <div class="code-block">
+          <div class="code-block-header"><span class="code-lang">T-SQL — Create Job with Steps and Schedule</span><button class="copy-btn">COPY</button></div>
+          <pre><code>USE msdb;
+GO
+
+-- 1. Create the job
+EXEC sp_add_job
+  @job_name = N'NovaMart Nightly Backup';
+
+-- 2. Add Step 1 — Full Backup
+EXEC sp_add_jobstep
+  @job_name   = N'NovaMart Nightly Backup',
+  @step_name  = N'Full Backup',
+  @subsystem  = N'TSQL',
+  @database_name = N'master',
+  @command    = N'BACKUP DATABASE NovaMart
+TO DISK = ''C:\SQLBackup\NovaMart_Full.bak''
+WITH FORMAT, INIT, COMPRESSION, STATS = 10;';
+
+-- 3. Add Step 2 — Update Statistics
+EXEC sp_add_jobstep
+  @job_name   = N'NovaMart Nightly Backup',
+  @step_name  = N'Update Statistics',
+  @subsystem  = N'TSQL',
+  @database_name = N'NovaMart',
+  @command    = N'EXEC sp_updatestats;';
+
+-- 4. Add Step 3 — Log Backup
+EXEC sp_add_jobstep
+  @job_name   = N'NovaMart Nightly Backup',
+  @step_name  = N'Log Backup',
+  @subsystem  = N'TSQL',
+  @database_name = N'master',
+  @command    = N'BACKUP LOG NovaMart
+TO DISK = ''C:\SQLBackup\NovaMart_Log.bak''
+WITH INIT, STATS = 10;';
+
+-- 5. Create a daily schedule at 02:00
+EXEC sp_add_schedule
+  @schedule_name   = N'Nightly 02:00',
+  @freq_type       = 4,       -- Daily
+  @freq_interval   = 1,       -- Every 1 day
+  @active_start_time = 020000; -- 02:00:00
+
+-- 6. Attach schedule to job
+EXEC sp_attach_schedule
+  @job_name      = N'NovaMart Nightly Backup',
+  @schedule_name = N'Nightly 02:00';
+
+-- 7. Register job on this server
+EXEC sp_add_jobserver
+  @job_name   = N'NovaMart Nightly Backup',
+  @server_name = @@SERVERNAME;
+GO</code></pre>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Procedure</th><th>Purpose</th></tr></thead>
+            <tbody>
+              <tr><td><code>sp_add_job</code></td><td>Creates the job container in msdb.dbo.sysjobs</td></tr>
+              <tr><td><code>sp_add_jobstep</code></td><td>Adds an executable step to the job</td></tr>
+              <tr><td><code>sp_add_schedule</code></td><td>Creates a reusable schedule definition</td></tr>
+              <tr><td><code>sp_attach_schedule</code></td><td>Links a schedule to a job</td></tr>
+              <tr><td><code>sp_add_jobserver</code></td><td>Registers the job to run on a specific instance</td></tr>
+              <tr><td><code>sp_start_job</code></td><td>Manually starts a job without waiting for its schedule</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Knowledge Check -->
+        <div class="quiz">
+          <div class="quiz-title">Knowledge Check</div>
+          <ol>
+            <li>What Windows service must be running before SQL Server Agent jobs can execute?</li>
+            <li>A job has three steps. Step 2 fails. What should happen if each step's On-Failure action is set to "Quit the job reporting failure"?</li>
+            <li>Where in SSMS can you view the next scheduled run time for a job?</li>
+            <li>Which system stored procedure manually starts a SQL Server Agent job?</li>
+            <li>Job history is stored in which database?</li>
+          </ol>
+          <button class="answers-toggle"><span class="toggle-icon">▼</span> Show Answers</button>
+          <div class="answers-panel">
+            <ol>
+              <li>The <strong>SQL Server Agent</strong> Windows service (<code>SQLSERVERAGENT</code> or <code>SQLAgent$InstanceName</code> for named instances).</li>
+              <li>The job stops at Step 2, Step 3 is not executed, and the job reports a failure status in job history.</li>
+              <li>In <strong>Job Activity Monitor</strong> (right-click SQL Server Agent → View Job Activity) or by expanding SQL Server Agent → Jobs and viewing the job properties.</li>
+              <li><code>EXEC msdb.dbo.sp_start_job @job_name = N'job name';</code></li>
+              <li>The <strong>msdb</strong> system database — specifically in <code>msdb.dbo.sysjobhistory</code>.</li>
+            </ol>
+          </div>
+        </div>
+
+        <!-- Lab -->
+        <div class="lab-container">
+          <div class="lab-header">
+            <div class="lab-number">08</div>
+            <div>
+              <div class="lab-title">Create and Schedule the NovaMart Nightly Backup Job</div>
+              <div class="lab-meta">
+                <span class="tag orange">~45 min</span>
+                <span class="tag">Requires: SQL Agent running · NovaMart DB · C:\SQLBackup</span>
+                <span class="tag blue">SSMS · msdb</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lab-body">
+            <div class="mission-box">
+              <div class="mission-label">Mission Briefing — Lab 08</div>
+              <h3>Automate NovaMart's Nightly Backup Routine</h3>
+              <p>Budi wants the nightly backup to run without manual intervention. Create a three-step SQL Server Agent job that performs a full backup, updates statistics, and backs up the log. Schedule it for 02:00 daily, run it manually to confirm it works, then review the job history.</p>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part A — Verify SQL Server Agent Is Running</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>In SSMS Object Explorer, expand the <strong>SQL Server Agent</strong> node. If the icon shows a red stop sign, right-click → <strong>Start</strong>.</p>
+                  <div class="expected">SQL Server Agent node shows a green running icon.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part B — Create the Job via T-SQL</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>Open a new query window and run the full job creation script from Section 8.4 above. Ensure SQL Server Agent is running first.</p>
+                  <div class="expected">Commands complete without error. The job appears under SQL Server Agent → Jobs in Object Explorer (refresh the node).</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part C — Run the Job Manually</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>USE msdb;
+GO
+EXEC sp_start_job @job_name = N'NovaMart Nightly Backup';
+GO</code></pre></div>
+                </div></li>
+                <li><div class="step-body">
+                  <p>Wait 30 seconds, then check job status:</p>
+                  <div class="code-block"><div class="code-block-header"><span class="code-lang">T-SQL</span><button class="copy-btn">COPY</button></div>
+                  <pre><code>SELECT
+  j.name, h.step_name,
+  CASE h.run_status WHEN 1 THEN 'Succeeded' ELSE 'Failed' END AS Status,
+  h.message
+FROM msdb.dbo.sysjobhistory h
+JOIN msdb.dbo.sysjobs j ON h.job_id = j.job_id
+WHERE j.name = N'NovaMart Nightly Backup'
+ORDER BY h.run_date DESC, h.run_time DESC;</code></pre></div>
+                  <div class="expected">All three steps (Full Backup, Update Statistics, Log Backup) show Status = Succeeded.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <div class="lab-part">
+              <div class="lab-part-title">Part D — Review Job History in SSMS</div>
+              <ol class="steps">
+                <li><div class="step-body">
+                  <p>In Object Explorer, expand <strong>SQL Server Agent → Jobs</strong>. Right-click <strong>NovaMart Nightly Backup → View History</strong>.</p>
+                  <div class="expected">Job History dialog shows green checkmarks for each step. Drill into each row to see the start time, duration, and output message.</div>
+                </div></li>
+              </ol>
+            </div>
+
+            <h3 style="margin-top:28px">Validation Checklist</h3>
+            <ul class="checklist">
+              <li><span class="check-box"></span>SQL Server Agent service is running</li>
+              <li><span class="check-box"></span>Job "NovaMart Nightly Backup" exists under SQL Server Agent → Jobs</li>
+              <li><span class="check-box"></span>Job has three steps: Full Backup, Update Statistics, Log Backup</li>
+              <li><span class="check-box"></span>Job has schedule "Nightly 02:00" attached</li>
+              <li><span class="check-box"></span>Manual run via sp_start_job completed successfully</li>
+              <li><span class="check-box"></span>All steps show Succeeded in job history</li>
+            </ul>
+
+            <h3 style="margin-top:28px">Troubleshooting</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Problem</th><th>Likely Cause</th><th>Fix</th></tr></thead>
+                <tbody>
+                  <tr><td>sp_add_job fails — job already exists</td><td>Job was partially created in a previous attempt</td><td>Run <code>EXEC sp_delete_job @job_name = N'NovaMart Nightly Backup'</code> then re-run the creation script</td></tr>
+                  <tr><td>Step fails — cannot open backup device</td><td>C:\SQLBackup does not exist or SQL Server service account lacks permission</td><td>Create the directory and grant write permission to the SQL Server service account</td></tr>
+                  <tr><td>sp_start_job returns "job was not found"</td><td>Typo in job name, or connected to wrong instance</td><td>Check job name in Object Explorer; verify the server connection</td></tr>
+                  <tr><td>Log backup step fails — "not permitted under simple recovery"</td><td>NovaMart is in SIMPLE recovery model</td><td>Run <code>ALTER DATABASE NovaMart SET RECOVERY FULL</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:36px">
+          <a href="module-07.html" style="background:var(--surface-2);color:var(--text-2);padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none;border:1px solid var(--border)">← Module 07</a>
+          <a href="module-09.html" style="background:var(--accent);color:#fff;padding:10px 22px;border-radius:var(--r);font-family:var(--font-mono);font-size:12.5px;font-weight:500;text-decoration:none">Module 09 →</a>
+        </div>
+      </article>
+
+      <aside class="toc-sidebar">
+        <div class="toc-title">On this page</div>
+        <ul class="toc-list">
+          <li><a href="#components">8.1 Agent Components</a></li>
+          <li><a href="#create-gui">8.2 Creating a Job via SSMS</a></li>
+          <li><a href="#schedules">8.3 Schedules &amp; Job History</a></li>
+          <li><a href="#tsql-job">8.4 Creating a Job via T-SQL</a></li>
+          <li class="toc-h3"><a href="#lab">Lab 08</a></li>
+        </ul>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<button class="scroll-top" aria-label="Scroll to top">↑</button>
+<script src="shared.js"></script>
+</body>
+</html>
