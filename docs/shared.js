@@ -87,7 +87,7 @@
     sidebarNav.appendChild(hdr);
     pdfs.forEach(([label, file]) => {
       const a = document.createElement('a');
-      a.href = '../student-guide/pdf/' + file;
+      a.href = 'https://raw.githubusercontent.com/albertje8118/Training-SQL-Server-Administrator/main/student-guide/pdf/' + file;
       a.download = file;
       a.className = 'nav-item nav-download';
       a.title = 'Download ' + label + ' PDF';
