@@ -65,6 +65,37 @@
     });
   });
 
+  /* ── Sidebar download section ────────────────────────────── */
+  const sidebarNav = document.querySelector('.sidebar-nav');
+  if (sidebarNav) {
+    const pdfs = [
+      ['M01 Overview & Architecture',  'Ebook-Module-01-SQL-Server-Overview-and-Architecture.pdf'],
+      ['M02 Install & Configure',       'Ebook-Module-02-Installing-and-Configuring-SQL-Server.pdf'],
+      ['M03 Database Management',       'Ebook-Module-03-Database-Creation-and-Management.pdf'],
+      ['M04 Tables & Data',             'Ebook-Module-04-Tables-and-Data-Management.pdf'],
+      ['M05 Security & Users',          'Ebook-Module-05-Security-and-User-Management.pdf'],
+      ['M06 Backup & Restore',          'Ebook-Module-06-Backup-and-Restore.pdf'],
+      ['M07 DB Maintenance',            'Ebook-Module-07-Database-Maintenance.pdf'],
+      ['M08 SQL Agent',                 'Ebook-Module-08-SQL-Server-Agent-and-Automation.pdf'],
+      ['M09 Monitoring',                'Ebook-Module-09-Monitoring-and-Performance-Basics.pdf'],
+      ['M10 Troubleshooting',           'Ebook-Module-10-Basic-Troubleshooting.pdf'],
+      ['M11 Import & Export',           'Ebook-Module-11-Data-Import-and-Export.pdf'],
+    ];
+    const hdr = document.createElement('div');
+    hdr.className = 'nav-section';
+    hdr.textContent = '↓ Student E-Books (PDF)';
+    sidebarNav.appendChild(hdr);
+    pdfs.forEach(([label, file]) => {
+      const a = document.createElement('a');
+      a.href = '../student-guide/pdf/' + file;
+      a.download = file;
+      a.className = 'nav-item nav-download';
+      a.title = 'Download ' + label + ' PDF';
+      a.innerHTML = '<span class="nav-dl-icon">↓</span>' + label;
+      sidebarNav.appendChild(a);
+    });
+  }
+
   /* ── TOC active section highlight ───────────────────────── */
   const tocLinks = document.querySelectorAll('.toc-list a');
   if (tocLinks.length) {

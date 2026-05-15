@@ -11,6 +11,8 @@
 
 !student-guide/
 !student-guide/**
+!student-guide/pdf/
+!student-guide/pdf/**
 
 !contents/
 !contents/**

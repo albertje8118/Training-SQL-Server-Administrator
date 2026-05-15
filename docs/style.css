@@ -168,6 +168,28 @@ img { max-width: 100%; }
 }
 .nav-item.active .nav-badge { background: var(--orange-bg); color: var(--orange); }
 
+/* Download items */
+.nav-download { color: var(--green); font-size: 12px; }
+.nav-download:hover {
+  color: var(--text);
+  background: var(--green-bg);
+  border-left-color: var(--green);
+}
+.nav-dl-icon {
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--green-bg);
+  color: var(--green);
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(33, 163, 102, 0.25);
+}
+
 /* ── Main content ───────────────────────────────────────────── */
 .main {
   margin-left: var(--sidebar-w);
